@@ -3,6 +3,8 @@ import { Configuration, OpenAIApi } from "openai";
 import TelegramBot from 'node-telegram-bot-api';
 const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';
 
+const currentDateTime = new Date();
+
 const bot = new TelegramBot(token, { polling: true });
 
 config();
@@ -43,8 +45,10 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
     bot.sendMessage(chatId, "Нейронка печатает....");
-    let rrr = await chat(msg.text)
+    let text = await chat(msg.text)
 
-    console.log("🟢 "+rrr);
-    bot.sendMessage(chatId, "🟢 "+rrr);
+    console.log('Дата: ', currentDateTime.getDate());
+    console.log('Время: ', currentDateTime.getTime());
+    console.log(text);
+    bot.sendMessage(chatId, "🟢 "+text);
 });
