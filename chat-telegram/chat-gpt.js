@@ -47,8 +47,7 @@ bot.on('message', async (msg) => {
     bot.sendMessage(chatId, "Нейронка печатает....");
     let text = await chat(msg.text)
 
-    console.log('Дата: ', currentDateTime.getDate());
-    console.log('Время: ', currentDateTime.getTime());
+    console.log('Текущая дата и время: ', currentDateTime);
     console.log(text);
     bot.sendMessage(chatId, "🟢 "+text);
 });
