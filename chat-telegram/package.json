@@ -5,7 +5,8 @@
   "main": "chat-gpt.js",
   "type": "module",
   "scripts": {
-    "start": "node chat-gpt.js"
+    "start": "node chat-gpt.js",
+    "build": "webpack --mode production"
   },
   "keywords": [],
   "author": "",
