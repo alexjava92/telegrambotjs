@@ -1,10 +1,12 @@
 import {bot} from "./index.js";
 
-let responseUser = (request, chatId) =>{
+
+let responseUser = async (msg, chatId) => {
+
+    if (bot.on.target.message) {
+        chatId = msg.chat.id;
+        const messageText = 'тест'
+        await bot.sendMessage(chatId, messageText)
+    }
 
 }
-bot.on("message", async (msg) =>{
-    const chatId = msg.chat.id;
-    const messageText = 'тест'
-    await bot.sendMessage(chatId, messageText)
-})
