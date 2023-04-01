@@ -1,5 +1,6 @@
 // Импортируем библиотеку
 import pkg from 'pg';
+
 const {Client} = pkg;
 
 
@@ -35,3 +36,28 @@ async function runQuery() {
 //runQuery();
 
 // Проверка - существует ли пользователь в БД
+async function runUserExist() {
+
+    try {
+        // Подключаемся к базе данных
+        await client.connect();
+
+        // Выполняем SQL-запрос
+        const res = await client.query('SELECT * FROM usergpt WHERE chatid = 123456;');
+
+        // Выводим результат на экран
+        console.log(res.rows);
+
+        // Закрываем соединение
+        await client.end();
+
+        return res.rowCount > 0;
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+}
+
+runUserExist().then(result => console.log(result))
+
+
