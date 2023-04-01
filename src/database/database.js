@@ -37,13 +37,14 @@ async function runQuery() {
 
 // Проверка - существует ли пользователь в БД
 async function runUserExist() {
-
     try {
+
+
         // Подключаемся к базе данных
         await client.connect();
 
         // Выполняем SQL-запрос
-        const res = await client.query('SELECT * FROM usergpt WHERE chatid = 123456;');
+        const res = await client.query('SELECT * FROM usergpt WHERE chatid = 1223456;');
 
         // Выводим результат на экран
         console.log(res.rows);
@@ -57,7 +58,13 @@ async function runUserExist() {
         return false;
     }
 }
+    const result = new Boolean(runUserExist().then((result) => console.log(result)))
 
-runUserExist().then(result => console.log(result))
+
+
+//console.log(result)
+
+
+
 
 
