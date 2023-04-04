@@ -1,18 +1,6 @@
 // Импортируем библиотеку
 import pkg from 'pg';
-
 const {Client} = pkg;
-import mysql from 'mysql';
-
-const connection = mysql.createConnection({
-    // Параметры подключения
-    user: 'postgres',
-    host: 'localhost',
-    database: 'gpt',
-    password: 'Cjprvsyp040592',
-    port: 5432,
-});
-
 
 // Создаем экземпляр клиента с параметрами подключения
 const client = new Client({
@@ -46,7 +34,7 @@ async function runQuery() {
 //runQuery();
 
 // Проверка - существует ли пользователь в БД
-async function runUserExist() {
+/*async function runUserExist() {
     let result = '';
     // Подключаемся к базе данных
     await client.connect();
@@ -68,7 +56,7 @@ async function runUserExist() {
         // console.log('Пользователья не существует')
     }
     return result;
-}
+}*/
 
 /*runUserExist().then(result => {
     console.log(result);
@@ -79,11 +67,11 @@ async function runUserExist() {
     }
 });*/
 
-//console.log(result)
-
-async function runUserExistTest(id) {
+async function runUserExist(id) {
     let result = '';
+    // Подключаемся к базе данных
     await client.connect();
+    // Выполняем SQL-запрос
     const query = {
         text: 'SELECT * FROM usergpt WHERE chatid = $1',
         values: [id],
@@ -100,11 +88,36 @@ async function runUserExistTest(id) {
     return result;
 
 }
-runUserExistTest(123456)
+/*
+runUserExist(123456)
     .then(rows => console.log(rows))
     .catch(err => console.error(err));
+*/
 
+//Добавление нового пользователя в БД
+async function addNewUser(id, username, firstName) {
+    let result;
+    // Подключаемся к базе данных
+    await client.connect();
+    // Выполняем SQL-запрос
+    const query = {
+        text: 'INSERT INTO usergpt (chatid, username, first_name) VALUES ($1, $2, $3)',
+        values: [id, username, firstName]
+    };
+    const res = await client.query(query);
+    await client.end();
+    if (res.rowCount > 0) {
+        // console.log('Пользователь существует')
+        result = 'Пользователь добавлен'
+    } else {
+        result = 'Пользователь не добавлен'
+        // console.log('Пользователья не существует')
+    }
+    return result;
 
+}
+
+addNewUser(123, 'opa', 'hopa').then(result => console.log(result))
 
 
 
