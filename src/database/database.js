@@ -2,6 +2,16 @@
 import pkg from 'pg';
 
 const {Client} = pkg;
+import mysql from 'mysql';
+
+const connection = mysql.createConnection({
+    // Параметры подключения
+    user: 'postgres',
+    host: 'localhost',
+    database: 'gpt',
+    password: 'Cjprvsyp040592',
+    port: 5432,
+});
 
 
 // Создаем экземпляр клиента с параметрами подключения
@@ -37,32 +47,60 @@ async function runQuery() {
 
 // Проверка - существует ли пользователь в БД
 async function runUserExist() {
-    try {
+    let result = '';
+    // Подключаемся к базе данных
+    await client.connect();
 
+    // Выполняем SQL-запрос
+    const res = await client.query('SELECT * FROM usergpt WHERE chatid = 123456;');
 
-        // Подключаемся к базе данных
-        await client.connect();
+    // Выводим результат на экран
+    console.log(res.rows);
 
-        // Выполняем SQL-запрос
-        const res = await client.query('SELECT * FROM usergpt WHERE chatid = 1223456;');
+    // Закрываем соединение
+    await client.end();
 
-        // Выводим результат на экран
-        console.log(res.rows);
-
-        // Закрываем соединение
-        await client.end();
-
-        return res.rowCount > 0;
-    } catch (err) {
-        console.error(err);
-        return false;
+    if (res.rowCount > 0) {
+        // console.log('Пользователь существует')
+        result = 'Пользователь существует'
+    } else {
+        result = 'Пользователья не существует'
+        // console.log('Пользователья не существует')
     }
+    return result;
 }
-    const result = new Boolean(runUserExist().then((result) => console.log(result)))
 
-
+/*runUserExist().then(result => {
+    console.log(result);
+    if (result === 'Пользователь существует'){
+        console.log('ура работает')
+    }else if(result !== ""){
+        console.log("не работает")
+    }
+});*/
 
 //console.log(result)
+
+async function runUserExistTest(id) {
+
+
+    await client.connect();
+
+    const query = {
+        text: 'SELECT * FROM usergpt WHERE chatid = $1',
+        values: [id],
+    };
+
+    const res = await client.query(query);
+
+    await client.end();
+
+    return res.rows;
+
+}
+runUserExistTest(123456)
+    .then(rows => console.log(rows))
+    .catch(err => console.error(err));
 
 
 
