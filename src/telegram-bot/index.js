@@ -1,8 +1,9 @@
 import {chat} from "../chat-gpt/chat-gpt.js";
 import TelegramBot from 'node-telegram-bot-api';
 import {ANSWER_GREETING} from "./answer.js";
-//const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot
-const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';// @ChatGPT_russ_bot
+import {exist} from "./botLogic.js";
+const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot
+//const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';// @ChatGPT_russ_bot
 export const bot = new TelegramBot(token, {polling: true});
 
 bot.on("message", (msg) =>{
@@ -18,7 +19,14 @@ bot.on("message", (msg) =>{
 })
 
 bot.onText(/\/start/, async (msg) => {
+    const message_id = msg.message_id;
+    const first_name = msg.chat.first_name;
+    const username = msg.chat.username;
+    const type = msg.chat.type;
+
+
     const chatId = msg.chat.id;
+   //exist(chatId, username, first_name)
     const messageText = ANSWER_GREETING;
     return await bot.sendMessage(chatId, messageText);
 });

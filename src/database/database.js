@@ -3,7 +3,7 @@ import pkg from 'pg';
 const {Client} = pkg;
 
 // Создаем экземпляр клиента с параметрами подключения
-const client = new Client({
+export const client = new Client({
     user: 'postgres',
     host: 'localhost',
     database: 'gpt',
@@ -66,9 +66,10 @@ async function runQuery() {
         console.log("не работает")
     }
 });*/
-
-async function runUserExist(id) {
+// Проверка - существует ли пользователь в БД
+export async function runUserExist(id) {
     let result = '';
+
     // Подключаемся к базе данных
     await client.connect();
     // Выполняем SQL-запрос
@@ -77,7 +78,7 @@ async function runUserExist(id) {
         values: [id],
     };
     const res = await client.query(query);
-    await client.end();
+
     if (res.rowCount > 0) {
         // console.log('Пользователь существует')
         result = 'Пользователь существует'
@@ -85,6 +86,7 @@ async function runUserExist(id) {
         result = 'Пользователья не существует'
         // console.log('Пользователья не существует')
     }
+    await client.end();
     return result;
 
 }
@@ -95,8 +97,9 @@ runUserExist(123456)
 */
 
 //Добавление нового пользователя в БД
-async function addNewUser(id, username, firstName) {
+export async function addNewUser(id, username, firstName) {
     let result;
+
     // Подключаемся к базе данных
     await client.connect();
     // Выполняем SQL-запрос
@@ -105,7 +108,7 @@ async function addNewUser(id, username, firstName) {
         values: [id, username, firstName]
     };
     const res = await client.query(query);
-    await client.end();
+
     if (res.rowCount > 0) {
         // console.log('Пользователь существует')
         result = 'Пользователь добавлен'
@@ -113,11 +116,13 @@ async function addNewUser(id, username, firstName) {
         result = 'Пользователь не добавлен'
         // console.log('Пользователья не существует')
     }
+    await client.end();
     return result;
+
 
 }
 
-addNewUser(123, 'opa', 'hopa').then(result => console.log(result))
+//addNewUser(123, 'opa', 'hopa').then(result => console.log(result))
 
 
 

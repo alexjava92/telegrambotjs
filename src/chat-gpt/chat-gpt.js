@@ -8,25 +8,30 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
+
+
+
+
 export async function chat(prompt) {
+    while (true){
+    let messages = [{role: "system", content : prompt}]
+    console.log(messages)
     const response = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        messages: [
-            {role: "system", content: setup || "Answer as a pirate"},
-            {
-                role: "user",
-                content: prompt,
-            },
-        ],
+        model: "gpt-3.5-turbo-0301",
+        messages: messages,
     });
 
     // extract the answer.js from response
     const answer = response.data.choices[0].message.content;
-
+    messages.push({
+        role: "assistant", content: answer
+    })
+    console.log(messages)
+        
     return answer;
 }
-
-const setup = `ChatGPT`;
+}
+const setup = ``;
 
 
 //console.log(await chat(prompt));
