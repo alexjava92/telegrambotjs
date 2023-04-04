@@ -82,20 +82,22 @@ async function runUserExist() {
 //console.log(result)
 
 async function runUserExistTest(id) {
-
-
+    let result = '';
     await client.connect();
-
     const query = {
         text: 'SELECT * FROM usergpt WHERE chatid = $1',
         values: [id],
     };
-
     const res = await client.query(query);
-
     await client.end();
-
-    return res.rows;
+    if (res.rowCount > 0) {
+        // console.log('Пользователь существует')
+        result = 'Пользователь существует'
+    } else {
+        result = 'Пользователья не существует'
+        // console.log('Пользователья не существует')
+    }
+    return result;
 
 }
 runUserExistTest(123456)
