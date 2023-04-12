@@ -56,6 +56,8 @@ export async function chat(prompt, chatId) {
     // Извлекаем ответ из ответа API
     const answer = response.data.choices[0].message.content;
 
+    console.log('Длина текста: ' + answer.length)
+
     return answer;
 }
 

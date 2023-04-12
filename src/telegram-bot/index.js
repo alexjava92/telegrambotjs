@@ -1,7 +1,9 @@
 import {askQuestion} from "../chat-gpt/chat-gpt.js";
 import TelegramBot from 'node-telegram-bot-api';
-import {checkingYourSubscription, exist} from "./botLogic.js";
+import {checkingYourSubscription, exist, sendMessageInChunks} from "./botLogic.js";
 import {addStatus, deleteGetText, getStatus, getStatusOne} from "../database/database.js";
+import {logger} from "../logger/logger.js";
+
 
 const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot
 //const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';// @ChatGPT_russ_bot
@@ -9,7 +11,15 @@ const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS
 //https://t.me/Btcbank24com_v2_bot?start=btcbank24
 //https://t.me/Chat_GPT_RUSS_bot?start=btcbank24
 
+
+
+
+
+
+
 export const bot = new TelegramBot(token, {polling: true});
+
+logger.info('Приложение запущено');
 
 const keyboardText = {
     reply_markup: {
@@ -255,9 +265,11 @@ try {
                     const sentMessage = await bot.sendMessage(chatId, "📝 Нейронка печатает... от 5 сек до 1 минуты могут формироваться ответы");
                     const messageId = sentMessage.message_id;
                     let text = await askQuestion(msg.text, chatId);
+
+
                     console.log(message_id);
                     await bot.deleteMessage(chatId, messageId);
-                    await bot.sendMessage(chatId, "🟢 " + text);
+                    await sendMessageInChunks(chatId, "🟢 " + text);
                     return;
                 }
             }

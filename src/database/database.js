@@ -1,5 +1,6 @@
 // Импортируем библиотеку
 import pkg from 'pg';
+import {logger} from "../logger/logger.js";
 
 const {Client} = pkg;
 
@@ -22,7 +23,7 @@ async function runQuery() {
         const res = await client.query('SELECT * FROM usergpt');
 
         // Выводим результат на экран
-        console.log(res.rows);
+        logger.info(res.rows);
 
         // Закрываем соединение
         await client.end();
@@ -30,43 +31,6 @@ async function runQuery() {
         console.error(err);
     }
 }
-
-// Вызываем функцию
-//runQuery();
-
-// Проверка - существует ли пользователь в БД
-/*async function runUserExist() {
-    let result = '';
-    // Подключаемся к базе данных
-    await client.connect();
-
-    // Выполняем SQL-запрос
-    const res = await client.query('SELECT * FROM usergpt WHERE chatid = 123456;');
-
-    // Выводим результат на экран
-    console.log(res.rows);
-
-    // Закрываем соединение
-    await client.end();
-
-    if (res.rowCount > 0) {
-        // console.log('Пользователь существует')
-        result = 'Пользователь существует'
-    } else {
-        result = 'Пользователья не существует'
-        // console.log('Пользователья не существует')
-    }
-    return result;
-}*/
-
-/*runUserExist().then(result => {
-    console.log(result);
-    if (result === 'Пользователь существует'){
-        console.log('ура работает')
-    }else if(result !== ""){
-        console.log("не работает")
-    }
-});*/
 
 // Проверка - существует ли пользователь в БД
 export async function runUserExist(id) {
@@ -84,7 +48,7 @@ export async function runUserExist(id) {
 
     // Подключаемся к базе данных
     await client.connect()
-    console.log('Соединение с БД открыто.')
+   // console.log('Соединение с БД открыто.')
     // Выполняем SQL-запрос
     const query = {
         text: 'SELECT * FROM usergpt WHERE chatid = $1',
@@ -101,21 +65,15 @@ export async function runUserExist(id) {
         // console.log('Пользователья не существует')
     }
     }catch (error) {
-        console.error('Ошибка при выполнении запроса:', error);
+        logger.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.')
+      //  console.log('Соединение с БД закрыто.')
     }
 
     return result
 
 }
-
-/*
-runUserExist(123456)
-    .then(rows => console.log(rows))
-    .catch(err => console.error(err));
-*/
 
 //Добавление нового пользователя в БД
 export async function addNewUser(id, username, firstName) {
@@ -132,7 +90,7 @@ export async function addNewUser(id, username, firstName) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+       // console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'INSERT INTO usergpt (chatid, username, first_name) VALUES ($1, $2, $3)',
@@ -150,10 +108,10 @@ export async function addNewUser(id, username, firstName) {
         }
 
     } catch (error) {
-        console.error('Ошибка при выполнении запроса:', error);
+        logger.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+       // console.log('Соединение с БД закрыто.');
     }
     return result;
 }
@@ -162,8 +120,8 @@ export async function addNewUser(id, username, firstName) {
 export async function addNewText(id, userText) {
     let result;
     let text = JSON.stringify(userText)
-    console.log('приходит '+ typeof text)
-    console.log(text)
+
+    //console.log(text)
 
     const client = new Client({
         user: 'postgres',
@@ -176,13 +134,13 @@ export async function addNewText(id, userText) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+       // console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'UPDATE usergpt SET messaget_text = $1 WHERE chatid = $2',
             values: [text, id],
         };
-        console.log('записываем в БД');
+       // console.log('записываем в БД');
         const res = await client.query(query);
 
         if (res.rowCount > 0) {
@@ -192,12 +150,12 @@ export async function addNewText(id, userText) {
             result = 'Текст не добавлен';
             // console.log('Пользователья не существует')
         }
-        console.log(result)
+      //  console.log(result)
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+     //   console.log('Соединение с БД закрыто.');
     }
     return result;
 }
@@ -218,7 +176,7 @@ export async function getText(id) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+       // console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'SELECT messaget_text FROM usergpt WHERE chatid = $1',
@@ -229,19 +187,19 @@ export async function getText(id) {
         //console.log(res.rows)
         result1 = res.rows
         if (res.rowCount > 0) {
-            console.log('Текст в массиве есть')
+            //console.log('Текст в массиве есть')
             result = 'Текст в массиве есть';
 
         } else {
             result = 'Текста в массиве нету';
-            console.log('Текста в массиве нету')
+           // console.log('Текста в массиве нету')
         }
 
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+       // console.log('Соединение с БД закрыто.');
 
     }
     return result1;
@@ -261,7 +219,7 @@ export async function deleteGetText(id) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+       // console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'UPDATE usergpt SET messaget_text = $1 WHERE chatid = $2',
@@ -278,7 +236,7 @@ export async function deleteGetText(id) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+      //  console.log('Соединение с БД закрыто.');
     }
     return result;
 
@@ -298,13 +256,13 @@ export async function addStatus(id, userText) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+      //  console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'UPDATE usergpt SET column_status = $1 WHERE chatid = $2',
             values: [userText, id],
         };
-        console.log('записываем в БД');
+      //  console.log('записываем в БД');
         const res = await client.query(query);
 
         if (res.rowCount > 0) {
@@ -314,12 +272,12 @@ export async function addStatus(id, userText) {
             result = 'Статус не установлен';
             // console.log('Пользователья не существует')
         }
-        console.log(result)
+       // console.log(result)
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+       // console.log('Соединение с БД закрыто.');
     }
     return result;
 }
@@ -339,7 +297,7 @@ export async function getStatus(id) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+      //  console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'SELECT column_status FROM usergpt WHERE chatid = $1',
@@ -347,14 +305,14 @@ export async function getStatus(id) {
         };
         const res = await client.query(query);
 
-        console.log(res.rows)
+      //  console.log(res.rows)
         result1 = res.rows
 
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+      //  console.log('Соединение с БД закрыто.');
 
     }
     return result1;
@@ -375,13 +333,13 @@ export async function addStatusOne(id, userText) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+     //   console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'UPDATE usergpt SET column_status_1 = $1 WHERE chatid = $2',
             values: [userText, id],
         };
-        console.log('записываем в БД');
+       // console.log('записываем в БД');
         const res = await client.query(query);
 
         if (res.rowCount > 0) {
@@ -391,12 +349,12 @@ export async function addStatusOne(id, userText) {
             result = 'Статус не установлен';
             // console.log('Пользователья не существует')
         }
-        console.log(result)
+      //  console.log(result)
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+      //  console.log('Соединение с БД закрыто.');
     }
     return result;
 }
@@ -416,7 +374,7 @@ export async function getStatusOne(id) {
     try {
         // Подключаемся к базе данных
         await client.connect();
-        console.log('Соединение с БД открыто.');
+       // console.log('Соединение с БД открыто.');
         // Выполняем SQL-запрос
         const query = {
             text: 'SELECT column_status_1 FROM usergpt WHERE chatid = $1',
@@ -424,14 +382,14 @@ export async function getStatusOne(id) {
         };
         const res = await client.query(query);
 
-        console.log(res.rows)
+      //  console.log(res.rows)
         result1 = res.rows
 
     } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-        console.log('Соединение с БД закрыто.');
+      //  console.log('Соединение с БД закрыто.');
 
     }
     return result1;

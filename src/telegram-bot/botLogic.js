@@ -69,3 +69,24 @@ export const checkingYourSubscription = async  (chatId) => {
             'попробуйте позже.');
     }
 }
+
+//Разделяет текст на 4к символов
+export async function sendMessageInChunks(chatId, text) {
+    const maxMessageLength = 4000;
+    const textLength = text.length;
+
+    if (textLength <= maxMessageLength) {
+        await bot.sendMessage(chatId, text);
+    } else {
+        let startIndex = 0;
+        let endIndex = maxMessageLength;
+
+        while (startIndex < textLength) {
+            const messageChunk = text.slice(startIndex, endIndex);
+            await bot.sendMessage(chatId, messageChunk);
+
+            startIndex += maxMessageLength;
+            endIndex += maxMessageLength;
+        }
+    }
+}
