@@ -41,6 +41,7 @@ export async function chat(prompt, chatId) {
 
     // Преобразовываем историю разговора в нужный формат для OpenAI API
     const messageHistory = conversationHistory.map((entry) => [
+        { role: "system", content: "Ты полезный помощник."},
         { role: "user", content: entry.question },
         { role: "assistant", content: entry.answer },
     ]).flat();

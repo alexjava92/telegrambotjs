@@ -214,7 +214,8 @@ try {
             text: messageText,
         } = msg;
 
-        console.log(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
+        logger.info(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
+
         await exist(chatId, username, first_name);
         await checkingYourSubscription(chatId);
 
@@ -229,7 +230,7 @@ try {
                     ", я немного расскажу как пользоваться ботом. \n" +
                     "\nДля начала общение с нейронной сетью напишите свой вопрос.\n" +
                     "\nЧто бы сбросить историю диалога нажмите \"Завершить диалог\" " +
-                    "это отчистит историю диалогов.";
+                    "это отчистит историю диалога и память нейронной сети.";
 
                 await bot.sendMessage(chatId, welcomeMessage, keyboardMenu);
                 return;
