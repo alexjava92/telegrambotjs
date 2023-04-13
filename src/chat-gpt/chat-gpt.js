@@ -1,6 +1,7 @@
 import {config} from "dotenv";
 import {Configuration, OpenAIApi} from "openai";
 import {addNewText, getText} from "../database/database.js";
+import {logger} from "../logger/logger.js";
 
 config();
 
@@ -65,7 +66,7 @@ export async function chat(prompt, chatId) {
 export const askQuestion = async (question, chatId) => {
     const answer = await chat(question, chatId)
     addToHistory(question, answer)
-    console.log('Ответ нейронки: ' + answer)
+    logger.info('Ответ нейронки: ' + answer)
 
     addNewText(chatId, conversationHistory).then(r => console.log(r))
 

@@ -32,6 +32,52 @@ async function runQuery() {
     }
 }
 
+//Отдает idUser нормер пользователя из БД
+export async function getIdUser(id) {
+    let result;
+    let result1;
+
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
+
+    try {
+        // Подключаемся к базе данных
+        await client.connect();
+        // console.log('Соединение с БД открыто.');
+        // Выполняем SQL-запрос
+        const query = {
+            text: 'SELECT id FROM usergpt WHERE chatid = $1',
+            values: [id],
+        };
+        const res = await client.query(query);
+
+        //console.log(res.rows)
+        result1 = res.rows
+        if (res.rowCount > 0) {
+            //console.log('Текст в массиве есть')
+            result = 'Текст в массиве есть';
+
+        } else {
+            result = 'Текста в массиве нету';
+            // console.log('Текста в массиве нету')
+        }
+
+    } catch (error) {
+        console.error('Ошибка при выполнении запроса:', error);
+    } finally {
+        await client.end();
+        // console.log('Соединение с БД закрыто.');
+
+    }
+    return result1;
+
+}
+
 // Проверка - существует ли пользователь в БД
 export async function runUserExist(id) {
     let result
@@ -399,8 +445,10 @@ export async function getStatusOne(id) {
 //runUserExist(123).then(result => console.log(result))
 //addNewUser(123, 'ooopa', 'hopooa').then(result => console.log(result))
 //let messages = [{role: "system", content : 'prompt' || 'expletive'}]
-//addNewText(194857311, ["hoy hoy"]).then(result => console.log(result))
-//getText(194857311).then(result => console.log(result))
+//addNewText(5208745478, ["hoy hoy"]).then(result => console.log(result))
+//getText(5208745478).then(result => console.log(result))
 //deleteGetText(194857311).then(result => console.log(result))
 //addStatusOne(194857311, 'status').then(r => console.log(r))
 //getStatusOne(5208745478, 'status').then(r => console.log(r))
+//const id = await getIdUser(5208745478)
+//console.log(id[0].id)

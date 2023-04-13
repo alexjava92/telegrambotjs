@@ -5,9 +5,9 @@ import {addStatus, deleteGetText, getStatus, getStatusOne} from "../database/dat
 import {logger} from "../logger/logger.js";
 
 
-const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot
+//const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot
 //const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';// @ChatGPT_russ_bot
-//const token = '495082999:AAFG-JchEP7Kmr7iJAlwmxyTqy2qdeUVBmk';//  @javatest92_bot
+const token = '495082999:AAFG-JchEP7Kmr7iJAlwmxyTqy2qdeUVBmk';//  @javatest92_bot
 
 //https://t.me/Btcbank24com_v2_bot?start=btcbank24
 //https://t.me/Chat_GPT_RUSS_bot?start=btcbank24
@@ -52,6 +52,8 @@ const keyboardMenu = {
 let statusUserFinal;
 
 let status_1;
+
+const usersState = new Map(); // Для хранения состояния пользователей
 
 try {
     async function handleUserMessage(msg) {
@@ -203,6 +205,8 @@ try {
         }
     });*/
 
+
+
     bot.on("text", async (msg) => {
         const {
             message_id,
@@ -214,6 +218,7 @@ try {
 
         await exist(chatId, username, first_name);
         await checkingYourSubscription(chatId);
+
 
         if (messageText === "/start") {
             if (await handleUserMessage(msg)) {
@@ -245,29 +250,50 @@ try {
             // Обработка обычных текстовых сообщений
             const st = await getStatusOne(chatId);
             status_1 = st[0].column_status_1;
+            let statusUser;
+            const result = await getStatus(chatId);
+            console.log(result);
+            statusUser = result[0].column_status;
+            console.log("Проверяю статус: " + statusUser);
+            statusUserFinal = statusUser;
+
+            logger.info(status_1)
+            logger.info(statusUserFinal)
 
             if (status_1 === "yes_subscription") {
                 try {
-                    let statusUser;
-                    const result = await getStatus(chatId);
-                    console.log(result);
-                    statusUser = result[0].column_status;
-                    console.log("Проверяю статус: " + statusUser);
-                    statusUserFinal = statusUser;
+                    if (statusUserFinal === "start_dialog") {
+                        try {
+                            // Проверяем состояние пользователя
+                            if (usersState.get(chatId)) {
+                                console.log("Пользователь ожидает ответа, не отправляем новое сообщение.");
+                                await bot.sendMessage(chatId, 'Дождитесь пожалуйста ответа 😊, а потом задавайте следующий.')
+                                return;
+                            }
+                            // Устанавливаем состояние пользователя как ожидающего ответа
+                            usersState.set(chatId, true);
+
+
+                            const sentMessage = await bot.sendMessage(chatId, "📝 Нейронка печатает... от 5 сек до 1 минуты могут формироваться ответы");
+                            const messageId = sentMessage.message_id;
+                            let text = await askQuestion(msg.text, chatId);
+
+                            console.log(message_id);
+                            await bot.deleteMessage(chatId, messageId);
+                            try {
+                                await sendMessageInChunks(chatId, "🟢 " + text);
+                            } catch (error) {
+                                console.error("Ошибка при отправке сообщения:", error);
+                            } finally {
+                                // Сбрасываем состояние пользователя после получения ответа
+                                usersState.set(chatId, false);
+                            }
+                        } catch (error) {
+                            logger.error("Произошла ошибка при обработке сообщения:", error);
+                        }
+                    }
                 } catch (error) {
-                    console.error("Error:", error);
-                }
-
-                if (statusUserFinal === "start_dialog") {
-                    const sentMessage = await bot.sendMessage(chatId, "📝 Нейронка печатает... от 5 сек до 1 минуты могут формироваться ответы");
-                    const messageId = sentMessage.message_id;
-                    let text = await askQuestion(msg.text, chatId);
-
-
-                    console.log(message_id);
-                    await bot.deleteMessage(chatId, messageId);
-                    await sendMessageInChunks(chatId, "🟢 " + text);
-                    return;
+                    logger.error("Произошла ошибка при проверке состояния:", error);
                 }
             }
         }

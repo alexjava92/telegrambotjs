@@ -1,6 +1,7 @@
 import {bot} from "./index.js";
-import {addNewUser, addStatus, addStatusOne} from "../database/database.js";
+import {addNewUser, addStatus, addStatusOne, getIdUser} from "../database/database.js";
 import {runUserExist} from "../database/database.js";
+import {logger} from "../logger/logger.js";
 
 
 const ADMIN = 194857311
@@ -23,30 +24,42 @@ const keyboardText = {
 
 //Проверка есть ли пользователь в БД если нету, добавить пользователя в БД
 export const exist = async (chatId, userName, firstName) => {
-    const messageText = '👤Создан новый пользователь '+ firstName + '\n' +
-        firstName +' '+ chatId + '\n' +
-        'Refer:\n' +
-        'Source: '
+    let idUser;
+
+
+
     runUserExist(chatId)
         .then(async result => {
                 console.log(result)
                 if (result === 'Пользователь существует') {
-                    console.log('Пользователь уже существует в БД')
+                    logger.info('Пользователь уже существует в БД')
                 }
-                if(result === 'Пользователья не существует'){
+                if (result === 'Пользователья не существует') {
                     addNewUser(chatId, userName, firstName)
                         .then(async result => {
-                            console.log(result)
+                            logger.info(result)
+                            const id = await getIdUser(chatId)
+                            idUser = id[0].id
+
+
+                            let messageText = '👤Создан новый пользователь: \n'
+                                + firstName + '|' + userName + '\n' +
+                                'ID: ' + idUser + ' | ChatID: ' + chatId + '\n'
+                                + 'Refer:\n' +
+                                'Source: '
+
                             await bot.sendMessage(ADMIN, messageText)
                            // await bot.sendMessage(ADMIN2, messageText)
                         })
+
+
                 }
             }
         )
 }
 
 //Проверка подписан ли пользователь на канал
-export const checkingYourSubscription = async  (chatId) => {
+export const checkingYourSubscription = async (chatId) => {
     // Проверяем подписку на канал
     try {
         const chatMember = await bot.getChatMember(channelUsername, chatId);
@@ -73,6 +86,7 @@ export const checkingYourSubscription = async  (chatId) => {
 
 //Разделяет текст на 4к символов
 export async function sendMessageInChunks(chatId, text) {
+
     const maxMessageLength = 4000;
     const textLength = text.length;
 
