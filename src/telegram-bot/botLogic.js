@@ -1,5 +1,5 @@
 import {bot} from "./index.js";
-import {addNewUser, addStatusOne} from "../database/database.js";
+import {addNewUser, addStatus, addStatusOne} from "../database/database.js";
 import {runUserExist} from "../database/database.js";
 
 
@@ -56,6 +56,7 @@ export const checkingYourSubscription = async  (chatId) => {
             // Пользователь подписан на канал, разрешаем использовать бота
             //  bot.sendMessage(chatId, 'Вы подписаны на канал. Можете пользоваться ботом.');
             await addStatusOne(chatId, 'yes_subscription')
+            await addStatus(chatId, "start_dialog");
         } else {
             // Пользователь не подписан на канал
             await bot.sendMessage(chatId, 'Пожалуйста, подпишитесь на канал @chat_gpt_neural_network, ' +
