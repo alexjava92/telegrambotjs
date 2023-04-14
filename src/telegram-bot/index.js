@@ -293,6 +293,7 @@ try {
                         } catch (error) {
                             logger.error("Произошла ошибка при обработке сообщения:", error);
                             await bot.sendMessage(chatId, 'Упс что то пошло не так. Отправь вопрос заного')
+                            usersState.set(chatId, false);
                         }
                     }
                 } catch (error) {

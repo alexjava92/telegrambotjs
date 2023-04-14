@@ -45,7 +45,7 @@ export const exist = async (chatId, userName, firstName, inputText) => {
 
 
                             let messageText = '👤Создан новый пользователь: \n'
-                                + firstName + '|' + userName + '\n' +
+                                + firstName + ' | ' + '@' + userName + '\n' +
                                 'ID: ' + idUser + ' | ChatID: ' + chatId + '\n'
                                 + 'Refer:\n' +
                                 'Source: ' + resourceFromCome
