@@ -1,4 +1,6 @@
 //4.4 Синтаксис классов
+import {bot} from "./index.js";
+
 class Employee {
     constructor(name, salary) {
         this.name = name

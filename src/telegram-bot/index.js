@@ -5,9 +5,9 @@ import {addStatus, deleteGetText, getStatus, getStatusOne} from "../database/dat
 import {logger} from "../logger/logger.js";
 
 
-//const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot
+const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot основной
 //const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';// @ChatGPT_russ_bot
-const token = '495082999:AAFG-JchEP7Kmr7iJAlwmxyTqy2qdeUVBmk';//  @javatest92_bot
+//const token = '495082999:AAFG-JchEP7Kmr7iJAlwmxyTqy2qdeUVBmk';//  @javatest92_bot
 
 //https://t.me/Btcbank24com_v2_bot?start=btcbank24
 //https://t.me/Chat_GPT_RUSS_bot?start=btcbank24
@@ -213,10 +213,10 @@ try {
             chat: { id: chatId, first_name, username, type },
             text: messageText,
         } = msg;
-
+        logger.info(JSON.stringify(msg))
         logger.info(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
-        await exist(chatId, username, first_name);
+        await exist(chatId, username, first_name, messageText);
         await checkingYourSubscription(chatId);
 
 
@@ -224,6 +224,8 @@ try {
             if (await handleUserMessage(msg)) {
                 await addStatus(chatId, "start_dialog");
                 await deleteGetText(chatId);
+                usersState.set(chatId, false);
+
 
                 const welcomeMessage =
                     "👋 Добро пожаловать " +
@@ -290,6 +292,7 @@ try {
                             }
                         } catch (error) {
                             logger.error("Произошла ошибка при обработке сообщения:", error);
+                            await bot.sendMessage(chatId, 'Упс что то пошло не так. Отправь вопрос заного')
                         }
                     }
                 } catch (error) {

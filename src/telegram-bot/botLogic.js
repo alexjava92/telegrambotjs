@@ -5,7 +5,7 @@ import {logger} from "../logger/logger.js";
 
 
 const ADMIN = 194857311
-//const ADMIN2 = 921469238
+const ADMIN2 = 921469238
 const channelUsername = '@chat_gpt_neural_network';
 
 const keyboardText = {
@@ -21,12 +21,14 @@ const keyboardText = {
         ],
     },
 }
+//рессурс от куда пришли
+let resourceFromCome = 'none';
+let idUser;
 
 //Проверка есть ли пользователь в БД если нету, добавить пользователя в БД
-export const exist = async (chatId, userName, firstName) => {
-    let idUser;
+export const exist = async (chatId, userName, firstName, inputText) => {
 
-
+    whereDidYouComeFrom(inputText)
 
     runUserExist(chatId)
         .then(async result => {
@@ -46,7 +48,7 @@ export const exist = async (chatId, userName, firstName) => {
                                 + firstName + '|' + userName + '\n' +
                                 'ID: ' + idUser + ' | ChatID: ' + chatId + '\n'
                                 + 'Refer:\n' +
-                                'Source: '
+                                'Source: ' + resourceFromCome
 
                             await bot.sendMessage(ADMIN, messageText)
                            // await bot.sendMessage(ADMIN2, messageText)
@@ -104,4 +106,15 @@ export async function sendMessageInChunks(chatId, text) {
             endIndex += maxMessageLength;
         }
     }
+}
+
+//Обрезает текст /start blablabla показывает с какого рессурса пришли в бота
+export const whereDidYouComeFrom = (inputText ) => {
+// Разделить строку по пробелам
+    const parts = inputText.split(" ");
+
+// Получить второй элемент массива (индекс 1)
+    const desiredPart = parts[1];
+
+    resourceFromCome = desiredPart;
 }
