@@ -43,6 +43,9 @@ export const exist = async (chatId, userName, firstName, inputText) => {
                             const id = await getIdUser(chatId)
                             idUser = id[0].id
 
+                            if(userName === 'undefined'){
+                                userName = 'none'
+                            }
 
                             let messageText = '👤Создан новый пользователь: \n'
                                 + firstName + ' | ' + '@' + userName + '\n' +

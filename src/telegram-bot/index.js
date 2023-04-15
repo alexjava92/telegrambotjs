@@ -3,6 +3,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import {checkingYourSubscription, exist, sendMessageInChunks} from "./botLogic.js";
 import {addStatus, deleteGetText, getStatus, getStatusOne} from "../database/database.js";
 import {logger} from "../logger/logger.js";
+import {transcribeAudio} from "../GoogleSpeechText/GoogleSpeechToText.js";
 
 
 const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot основной
@@ -292,7 +293,7 @@ try {
                             }
                         } catch (error) {
                             logger.error("Произошла ошибка при обработке сообщения:", error);
-                            await bot.sendMessage(chatId, 'Упс что то пошло не так. Отправь вопрос заного')
+                            await bot.sendMessage(chatId, 'Упс что то пошло не так. Нажми /start и отправь вопрос заного')
                             usersState.set(chatId, false);
                         }
                     }
@@ -328,7 +329,25 @@ try {
     }
 });
 
+    bot.on('voice', async (msg) => {
+        const { chat: { id: chatId, first_name: firstName }, voice: { file_id: fileId } } = msg;
 
+        // Получите ссылку на файл голосового сообщения
+        const file = await bot.getFile(fileId);
+        const fileLink = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+
+        try {
+            // Транскрибируйте голосовое сообщение
+            const transcription = await transcribeAudio(fileLink);
+
+            // Отправьте текстовое сообщение с результатами транскрибирования
+            await bot.sendMessage(chatId, `🔊 Текст голосового сообщения:\n\n${transcription}`);
+        } catch (error) {
+            console.error('Ошибка при транскрибировании голосового сообщения:', error);
+            await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при транскрибировании голосового сообщения. ' +
+                'Скоро меня научат)');
+        }
+    });
 
 
 

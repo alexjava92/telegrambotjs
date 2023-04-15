@@ -55,8 +55,3 @@ let images2 = response1.data;
 console.log(images2);
 
 
-bot.on("text", async (msg) => {
-    // ... (остальная часть кода)
-
-
-});
