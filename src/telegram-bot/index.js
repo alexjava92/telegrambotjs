@@ -214,7 +214,7 @@ try {
             chat: { id: chatId, first_name, username, type },
             text: messageText,
         } = msg;
-        logger.info(JSON.stringify(msg))
+       // logger.info(JSON.stringify(msg))
         logger.info(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
         await exist(chatId, username, first_name, messageText);
@@ -270,7 +270,7 @@ try {
                             // Проверяем состояние пользователя
                             if (usersState.get(chatId)) {
                                 console.log("Пользователь ожидает ответа, не отправляем новое сообщение.");
-                                await bot.sendMessage(chatId, 'Дождитесь пожалуйста ответа 😊, а потом задавайте следующий.')
+                                await bot.sendMessage(chatId, 'Дождитесь пожалуйста ответа 😊, а потом задавайте следующий вопрос.')
                                 return;
                             }
                             // Устанавливаем состояние пользователя как ожидающего ответа
@@ -295,6 +295,8 @@ try {
                             logger.error("Произошла ошибка при обработке сообщения:", error);
                             await bot.sendMessage(chatId, 'Упс что то пошло не так. Нажми /start и отправь вопрос заного')
                             usersState.set(chatId, false);
+                            await deleteGetText(chatId)
+
                         }
                     }
                 } catch (error) {

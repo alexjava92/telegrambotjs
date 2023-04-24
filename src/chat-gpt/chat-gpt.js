@@ -36,7 +36,7 @@ export async function chat(prompt, chatId) {
         }
     } catch (error) {
         // Если возникает ошибка, выводим сообщение об ошибке и присваиваем пустой массив
-        console.error("Ошибка при получении истории разговора:", error);
+        logger.error("Ошибка при получении истории разговора:", error);
         conversationHistory = [];
     }
 
@@ -64,13 +64,17 @@ export async function chat(prompt, chatId) {
 }
 
 export const askQuestion = async (question, chatId) => {
+    try {
     const answer = await chat(question, chatId)
     addToHistory(question, answer)
     logger.info('Ответ нейронки: ' + answer)
 
-    addNewText(chatId, conversationHistory).then(r => console.log(r))
+    await addNewText(chatId, conversationHistory)
 
     return answer
+    } catch (err) {
+        logger.error(err)
+    }
 };
 
 
