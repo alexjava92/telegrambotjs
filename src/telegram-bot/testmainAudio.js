@@ -11,7 +11,7 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 const resp = await openai.createTranscription(
-    fs.createReadStream("file_5.oga"),
+    await fs.createReadStream("file_5.oga"),
     "whisper-1"
 
 
