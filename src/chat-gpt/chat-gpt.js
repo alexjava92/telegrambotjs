@@ -29,7 +29,7 @@ async function retrieveConversationHistory(chatId) {
 
 function createMessageHistory(conversationHistory, prompt) {
     const messageHistory = [
-        { role: "system", content: "Ты полезный помощник." },
+        { role: "system", content: "Ты полезный помощник" },
     ];
 
     conversationHistory.forEach((entry) => {
@@ -75,8 +75,8 @@ export const askQuestion = async (question, chatId) => {
     try {
         const answer = await chat(question, chatId);
         await addToHistory(question, answer, chatId);
-        logger.info("Ответ нейронки:", answer);
-        console.log("Answer from chat function:", answer);
+        console.log("Ответ нейронки:", answer);
+
         return answer;
     } catch (err) {
         logger.error(err);

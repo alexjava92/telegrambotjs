@@ -1,225 +1,47 @@
-import {askQuestion} from "../chat-gpt/chat-gpt.js";
 import TelegramBot from 'node-telegram-bot-api';
-import {checkingYourSubscription, exist, sendMessageInChunks} from "./botLogic.js";
-import {addStatus, deleteGetText, getStatus, getStatusOne} from "../database/database.js";
 import {logger} from "../logger/logger.js";
-import {transcribeAudio} from "../GoogleSpeechText/GoogleSpeechToText.js";
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import {handleText, handleVoice} from "./handlers/TextHandler.js";
+import {handleCallbackQuery} from "./handlers/TextHandler.js";
+import {proxy, token} from "./config/Config.js";
+import {ADMIN, handlePreCheckoutQuery} from "./botLogic.js";
+import {checkAndSetSubscriptionStatus} from "../database/database.js";
 
 
-const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot основной
+
+
+//const token = '6007077141:AAHKrrFa6xKW4nUd6Km_oDJ0pxJLiuL7DQE';// @Chat_GPT_RUSS_bot основной
 //const token = '6006265660:AAGqERvOuQtqteLH3NIMax3LEeRVZfqgpWs';// @ChatGPT_russ_bot
 //const token = '495082999:AAFG-JchEP7Kmr7iJAlwmxyTqy2qdeUVBmk';//  @javatest92_bot
 
 //https://t.me/Btcbank24com_v2_bot?start=btcbank24
 //https://t.me/Chat_GPT_RUSS_bot?start=btcbank24
 
-
-export const bot = new TelegramBot(token, {polling: true});
-
-logger.info('Приложение запущено');
-
-const keyboardText = {
-    reply_markup: {
-        inline_keyboard: [
-            [
-                {
-                    text: 'Завершить диалог',
-                    callback_data: 'button_pressed',
-                },
-                {
-                    text: 'Завершить диалог',
-                    callback_data: 'button_pressed',
-                },
-            ],
-        ],
-    },
-}
-
-const keyboardMenu = {
-    reply_markup: {
-        keyboard: [
-            [
-                {
-                    text: 'Завершить диалог',
-
-                },
-            ],
-        ],
-        resize_keyboard: true,
-        one_time_keyboard: true,
-    },
-}
-
-let statusUserFinal;
-
-let status_1;
-
-const usersState = new Map(); // Для хранения состояния пользователей
+let bot;
 
 try {
-    async function handleUserMessage(msg) {
-        const {
-            message_id,
-            chat: {id: chatId, first_name, username, type},
-            text: messageText,
-            photo, sticker, document,
-        } = msg;
+    const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
+    const agent = new HttpsProxyAgent(proxyUrl);
+    bot = new TelegramBot(token, {polling: true, request: {agent}});
+} catch (err) {
+    logger.error("Глобальная ошибка ёбаный рот! пытаюсь обработать ошибку! " + err);
+}
 
-        if (photo) {
-            console.log("получено фото");
-        }
+export { bot };
 
-        const st = await getStatusOne(chatId);
-        status_1 = st[0].column_status_1;
-
-        return status_1 === "yes_subscription";
-    }
+logger.info('Приложение запущено');
+logger.info('Запущена проверка подписок раз в 24 часа', setInterval(checkAndSetSubscriptionStatus, 24 * 60 * 60 * 1000));
 
 
-    bot.on("text", async (msg) => {
-        const {
-            message_id,
-            chat: { id: chatId, first_name, username, type },
-            text: messageText,
-        } = msg;
-       // logger.info(JSON.stringify(msg))
-        logger.info(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
-        await exist(chatId, username, first_name, messageText);
-        await checkingYourSubscription(chatId);
+try {
 
-
-        if (messageText === "/start") {
-            if (await handleUserMessage(msg)) {
-                await addStatus(chatId, "start_dialog");
-                await deleteGetText(chatId);
-                usersState.set(chatId, false);
-
-
-                const welcomeMessage =
-                    "👋 Добро пожаловать " +
-                    first_name +
-                    ", я немного расскажу как пользоваться ботом. \n" +
-                    "\nДля начала общение с нейронной сетью напишите свой вопрос.\n" +
-                    "\nЧто бы сбросить историю диалога нажмите \"Завершить диалог\" " +
-                    "это отчистит историю диалога и память нейронной сети.";
-
-                await bot.sendMessage(chatId, welcomeMessage, keyboardMenu);
-                return;
-            }
-        } else if (messageText === "Завершить диалог") {
-            if (await handleUserMessage(msg)) {
-                await bot.sendMessage(chatId, "История диалога успешно сброшена!");
-                await deleteGetText(chatId);
-            }
-        } else if (messageText === "Начать диалог") {
-            if (await handleUserMessage(msg)) {
-                await bot.sendMessage(chatId, "Диалог успешно начат!\nТеперь можете спросить меня о чем угодно...");
-                await addStatus(chatId, "start_dialog");
-            }
-        } else {
-            // Обработка обычных текстовых сообщений
-            const st = await getStatusOne(chatId);
-            status_1 = st[0].column_status_1;
-            let statusUser;
-            const result = await getStatus(chatId);
-            console.log(result);
-            statusUser = result[0].column_status;
-            console.log("Проверяю статус: " + statusUser);
-            statusUserFinal = statusUser;
-
-            logger.info(status_1)
-            logger.info(statusUserFinal)
-
-            if (status_1 === "yes_subscription") {
-                try {
-                    if (statusUserFinal === "start_dialog") {
-                        try {
-                            // Проверяем состояние пользователя
-                            if (usersState.get(chatId)) {
-                                console.log("Пользователь ожидает ответа, не отправляем новое сообщение.");
-                                await bot.sendMessage(chatId, 'Дождитесь пожалуйста ответа 😊, а потом задавайте следующий вопрос.')
-                                return;
-                            }
-                            // Устанавливаем состояние пользователя как ожидающего ответа
-                            usersState.set(chatId, true);
-
-
-                            const sentMessage = await bot.sendMessage(chatId, "📝 Нейронка печатает... от 5 сек до 1 минуты могут формироваться ответы");
-                            const messageId = sentMessage.message_id;
-                            let text = await askQuestion(msg.text, chatId);
-
-                            console.log(message_id);
-                            await bot.deleteMessage(chatId, messageId);
-                            try {
-                                await sendMessageInChunks(chatId, "🟢 " + text);
-                            } catch (error) {
-                                console.error("Ошибка при отправке сообщения:", error);
-                            } finally {
-                                // Сбрасываем состояние пользователя после получения ответа
-                                usersState.set(chatId, false);
-                            }
-                        } catch (error) {
-                            logger.error("Произошла ошибка при обработке сообщения:", error);
-                            await bot.sendMessage(chatId, 'Упс что то пошло не так. Нажми /start и отправь вопрос заного')
-                            usersState.set(chatId, false);
-                            await deleteGetText(chatId)
-
-                        }
-                    }
-                } catch (error) {
-                    logger.error("Произошла ошибка при проверке состояния:", error);
-                }
-            }
-        }
+    bot.on('text', (msg) => handleText(msg, bot));
+    bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
+    bot.on('voice', (msg) => handleVoice(msg, bot));
+    bot.on('pre_checkout_query', async (preCheckoutQuery,) => {
+        await handlePreCheckoutQuery(bot, preCheckoutQuery);
     });
-
-    bot.on('callback_query', async (callbackQuery) => {
-        const action = callbackQuery.data;
-        const msg = callbackQuery.message;
-        const chatId = msg.chat.id;
-        const photo = msg.text.photo;
-
-        if (photo) {
-            console.log('получено фото')
-        }
-
-        if (action === 'checking_your_subscription') {
-            await checkingYourSubscription(chatId)
-            const st = await getStatusOne(chatId);
-            status_1 = st[0].column_status_1;
-            if (status_1 === 'yes_subscription') {
-                await bot.sendMessage(chatId, '😊 Спасибо, за подписку! Вы можете использовать функционал бота. Напишите что-нибудь, например: Первый человек на луне?');
-            } else
-                await bot.sendMessage(chatId, 'Вы не подписались 😔');
-            await bot.answerCallbackQuery(callbackQuery.id, {
-            text: ''
-        });
-        return;
-    }
-});
-
-    bot.on('voice', async (msg) => {
-        const { chat: { id: chatId, first_name: firstName }, voice: { file_id: fileId } } = msg;
-
-        // Получите ссылку на файл голосового сообщения
-        const file = await bot.getFile(fileId);
-        const fileLink = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-
-        try {
-            // Транскрибируйте голосовое сообщение
-            const transcription = await transcribeAudio(fileLink);
-
-            // Отправьте текстовое сообщение с результатами транскрибирования
-            await bot.sendMessage(chatId, `🔊 Текст голосового сообщения:\n\n${transcription}`);
-        } catch (error) {
-            console.error('Ошибка при транскрибировании голосового сообщения:', error);
-            await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при транскрибировании голосового сообщения. ' +
-                'Скоро меня научат)');
-        }
-    });
-
-
 
 } catch (err) {
     console.log(err)
