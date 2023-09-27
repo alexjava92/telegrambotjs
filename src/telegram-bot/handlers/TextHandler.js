@@ -109,16 +109,6 @@ export async function handleText(msg, bot) {
     const canProceed = await handleUserRequest(chatId, messageText);
     if (!canProceed) return; // Если пользователь исчерпал лимит, мы завершаем обработку
 
-    //проверка карт /card 5536 9139 0670 5666
-    const cardPattern = /\/card\s+(\d{4}[\s\-]?){3}\d{4}/;
-    const cardMatch = messageText.match(cardPattern);
-    if (cardMatch) {
-        const cardNumber = cardMatch[0].replace(/\/card\s+|\s|-/g, ''); // Убираем "/card ", пробелы и дефисы
-        await addStatus(chatId, "card_check");
-        await bot.sendMessage(chatId, `Данные карты: ${cardNumber}`);
-        await displayCardInfo(cardNumber, chatId)
-        return;
-    }
 
     if (messageText === "/start") {
         if (await handleUserMessage(msg)) {
@@ -148,6 +138,25 @@ export async function handleText(msg, bot) {
             await bot.sendMessage(chatId, "Диалог успешно начат!\nТеперь можете спросить меня о чем угодно...");
             await addStatus(chatId, "start_dialog");
         }
+        //проверка карт /card 5536 9139 0670 5666
+    } else if (messageText.startsWith("/card")) {
+
+        const cardPattern = /\/card\s*((\d{4}[\s\-]?){1,3}\d{2,4}|(\d{4}[\s\-]?){3}\d{4})/;
+
+        const cardMatch = messageText.match(cardPattern);
+        if (cardMatch) {
+            const cardNumber = cardMatch[0].replace(/\/card\s+|\s|-/g, ''); // Убираем "/card ", пробелы и дефисы
+            await addStatus(chatId, "card_check");
+            await bot.sendMessage(chatId, `Данные карты: ${cardNumber}`);
+
+            const resultCardInfo = await displayCardInfo(cardNumber, chatId)
+            await bot.sendMessage(chatId, `${resultCardInfo}`);
+            return;
+        } else {
+            await bot.sendMessage(chatId, `🔴 Не верно указана карта.`);
+            return;
+        }
+
     } else {
         // Обработка обычных текстовых сообщений
         const st = await getStatusOne(chatId);
@@ -176,7 +185,7 @@ export async function handleText(msg, bot) {
                         usersState.set(chatId, true);
 
 
-                        const sentMessage = await bot.sendMessage(chatId, "📝 Нейронка печатает... от 5 сек до 1 минуты могут формироваться ответы");
+                        const sentMessage = await bot.sendMessage(chatId, "📝 GPT печатает... от 5 сек до 1 минуты могут формироваться ответы");
                         const messageId = sentMessage.message_id;
                         let text = await askQuestion(msg.text, chatId);
 
@@ -192,7 +201,7 @@ export async function handleText(msg, bot) {
                         }
                     } catch (error) {
                         logger.error("Произошла ошибка при обработке сообщения:", error);
-                        await bot.sendMessage(chatId, 'Упс что то пошло не так. Нажми /start и отправь вопрос заного')
+                        await bot.sendMessage(chatId, 'Упс что то пошло не так. Нажми /start и отправь вопрос заново')
                         usersState.set(chatId, false);
                         await deleteGetText(chatId)
 
@@ -301,8 +310,6 @@ export async function handleCallbackQuery(callbackQuery, bot) {
         });
         return;
     }
-
-
 
 
     if (action === 'buy_subscription') {

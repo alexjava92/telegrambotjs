@@ -1,7 +1,9 @@
 import axios from 'axios';
-import {processCardNumber} from "../telegram-bot/botLogic.js";
-import {bot} from "../telegram-bot/index.js";
 
+import {bot} from "../telegram-bot/index.js";
+import {logger} from "../logger/logger.js";
+
+//Подключение к API проверки карт
 async function getCardInfo(cardNumber) {
     const options = {
         method: 'POST',
@@ -23,6 +25,7 @@ async function getCardInfo(cardNumber) {
     }
 }
 
+//
 function logCardDetails(cardInfo, chatId) {
     const {
         success,
@@ -40,17 +43,17 @@ function logCardDetails(cardInfo, chatId) {
         }
     } = cardInfo;
 
-    console.log("Успех: " + success);
-    console.log("Код: " + code);
-    console.log("Действительность: " + valid);
-    console.log("Номер: " + number);
-    console.log("Схема: " + scheme);
-    console.log("Бренд: " + brand);
-    console.log("Тип: " + type);
-    console.log("Уровень: " + level);
-    console.log("Валюта: " + currency);
-    console.log("Эмитент: " + name);
-    console.log("Страна: " + countryName);
+    logger.info("Успех: " + success);
+    logger.info("Код: " + code);
+    logger.info("Действительность: " + valid);
+    logger.info("Номер: " + number);
+    logger.info("Схема: " + scheme);
+    logger.info("Бренд: " + brand);
+    logger.info("Тип: " + type);
+    logger.info("Уровень: " + level);
+    logger.info("Валюта: " + currency);
+    logger.info("Эмитент: " + name);
+    logger.info("Страна: " + countryName);
 
     const cardDetailsMessage = `
 Успех: ${success}
@@ -66,24 +69,25 @@ function logCardDetails(cardInfo, chatId) {
 Страна: ${countryName}
 `;
 
-    bot.sendMessage(chatId, cardDetailsMessage);
 
+    //  bot.sendMessage(chatId, cardDetailsMessage);
 
-
+    return cardDetailsMessage;
 }
+
 export async function displayCardInfo(rawCardNumber, chatId) {
     if (typeof rawCardNumber !== 'string') {
-        console.error('displayCardInfo received a non-string value:', rawCardNumber);
+        logger.error('displayCardInfo received a non-string value:', rawCardNumber);
         return;
     }
 
     const cleanedCardNumber = rawCardNumber.replace(/\D/g, ''); // Удаляем все нецифровые символы
-    const firstSixDigits = cleanedCardNumber.substring(0, 6);
+    const firstSixDigits = cleanedCardNumber.substring(0, 6); //обрезаем и оставляем первые 6 цифр карты
     const cardInfo = await getCardInfo(firstSixDigits);
 
-    console.log("Получил значение: ");
-    console.log(cardInfo);
-    logCardDetails(cardInfo, chatId);
+    logger.info(`"Получил значение: " ${cardInfo}`);
+
+    return logCardDetails(cardInfo, chatId);
 }
 
 

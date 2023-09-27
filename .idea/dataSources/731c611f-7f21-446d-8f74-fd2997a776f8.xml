@@ -3,15 +3,7 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.45">
     <root id="1">
       <DateStyle>dmy</DateStyle>
-      <Grants>1||-9223372036854775808|c|G
-1||10|c|G
-1||10|C|G
-1||10|T|G
-4||-9223372036854775808|c|G
-4||10|c|G
-4||10|C|G
-4||10|T|G</Grants>
-      <IntrospectionStateNumber>17818</IntrospectionStateNumber>
+      <IntrospectionStateNumber>17914</IntrospectionStateNumber>
       <ServerVersion>15.2</ServerVersion>
       <StartupTime>1695196215</StartupTime>
       <TimeZones>true ACDT
@@ -808,7 +800,7 @@ false Zulu
 13183||10|C|G
 13183||-9223372036854775808|U|G
 13183||10|U|G</Grants>
-      <IntrospectionStateNumber>17819</IntrospectionStateNumber>
+      <IntrospectionStateNumber>17914</IntrospectionStateNumber>
       <ObjectId>16394</ObjectId>
       <OwnerName>postgres</OwnerName>
     </database>
@@ -5903,7 +5895,7 @@ false Zulu
     <schema id="262" parent="2" name="public">
       <Comment>standard public schema</Comment>
       <Current>1</Current>
-      <IntrospectionStateNumber>17819</IntrospectionStateNumber>
+      <IntrospectionStateNumber>17914</IntrospectionStateNumber>
       <ObjectId>2200</ObjectId>
       <StateNumber>518</StateNumber>
       <OwnerName>pg_database_owner</OwnerName>
@@ -5914,13 +5906,19 @@ false Zulu
       <StateNumber>728</StateNumber>
       <OwnerName>postgres</OwnerName>
     </sequence>
-    <table id="264" parent="262" name="usergpt">
+    <table id="264" parent="262" name="card">
+      <ObjectId>49946</ObjectId>
+      <StateNumber>17913</StateNumber>
+      <AccessMethodId>2</AccessMethodId>
+      <OwnerName>postgres</OwnerName>
+    </table>
+    <table id="265" parent="262" name="usergpt">
       <ObjectId>16395</ObjectId>
       <StateNumber>17279</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>postgres</OwnerName>
     </table>
-    <column id="265" parent="264" name="id">
+    <column id="266" parent="265" name="id">
       <DasType>integer|0s</DasType>
       <IdentityKind>always</IdentityKind>
       <NotNull>1</NotNull>
@@ -5929,61 +5927,61 @@ false Zulu
       <SequenceId>16398</SequenceId>
       <TypeId>23</TypeId>
     </column>
-    <column id="266" parent="264" name="chatid">
+    <column id="267" parent="265" name="chatid">
       <DasType>double precision|0s</DasType>
       <Position>2</Position>
       <StateNumber>736</StateNumber>
       <TypeId>701</TypeId>
     </column>
-    <column id="267" parent="264" name="username">
+    <column id="268" parent="265" name="username">
       <DasType>varchar|0s</DasType>
       <Position>3</Position>
       <StateNumber>730</StateNumber>
       <TypeId>1043</TypeId>
     </column>
-    <column id="268" parent="264" name="first_name">
+    <column id="269" parent="265" name="first_name">
       <DasType>varchar|0s</DasType>
       <Position>4</Position>
       <StateNumber>731</StateNumber>
       <TypeId>1043</TypeId>
     </column>
-    <column id="269" parent="264" name="messaget_text">
+    <column id="270" parent="265" name="messaget_text">
       <DasType>text|0s</DasType>
       <Position>5</Position>
       <StateNumber>1019</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="270" parent="264" name="column_status">
+    <column id="271" parent="265" name="column_status">
       <DasType>text|0s</DasType>
       <Position>6</Position>
       <StateNumber>1074</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="271" parent="264" name="column_status_1">
+    <column id="272" parent="265" name="column_status_1">
       <DasType>text|0s</DasType>
       <Position>7</Position>
       <StateNumber>1266</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="272" parent="264" name="response_count">
+    <column id="273" parent="265" name="response_count">
       <DasType>integer|0s</DasType>
       <Position>8</Position>
       <StateNumber>16766</StateNumber>
       <TypeId>23</TypeId>
     </column>
-    <column id="273" parent="264" name="subscription_status">
+    <column id="274" parent="265" name="subscription_status">
       <DasType>text|0s</DasType>
       <Position>9</Position>
       <StateNumber>16769</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="274" parent="264" name="last_response_date">
+    <column id="275" parent="265" name="last_response_date">
       <DasType>date|0s</DasType>
       <Position>10</Position>
       <StateNumber>16772</StateNumber>
       <TypeId>1082</TypeId>
     </column>
-    <column id="275" parent="264" name="subscription_end_date">
+    <column id="276" parent="265" name="subscription_end_date">
       <DasType>date|0s</DasType>
       <Position>11</Position>
       <StateNumber>17279</StateNumber>
