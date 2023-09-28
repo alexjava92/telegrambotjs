@@ -2,6 +2,7 @@ import axios from 'axios';
 
 import {bot} from "../telegram-bot/index.js";
 import {logger} from "../logger/logger.js";
+import {getCardInfoIfExists, insertCardInfo, isCardAdded} from "../database/Card.js";
 
 //Подключение к API проверки карт
 async function getCardInfo(cardNumber) {
@@ -19,29 +20,43 @@ async function getCardInfo(cardNumber) {
 
     try {
         const response = await axios.request(options);
+        logger.API("Успешный запрос к API проверки карт")
         return response.data;
+
     } catch (error) {
-        console.error(error);
+        logger.error(error);
     }
 }
 
-//
-function logCardDetails(cardInfo, chatId) {
-    const {
+//логика сообщения для отправки пользователю о карте
+async function logCardDetails(cardInfo) {
+    let {
         success,
         code,
-        BIN: {
-            valid,
-            number,
-            scheme,
-            brand,
-            type,
-            level,
-            currency,
-            issuer: {name},
-            country: {name: countryName}
-        }
+        valid,
+        number,
+        scheme,
+        brand,
+        type,
+        level,
+        currency,
+        issuer_name,
+        country_name,
+        full_number_card,
+        BIN
     } = cardInfo;
+
+    if (BIN) {
+        valid = BIN.valid;
+        number = BIN.number;
+        scheme = BIN.scheme;
+        brand = BIN.brand;
+        type = BIN.type;
+        level = BIN.level;
+        currency = BIN.currency;
+        issuer_name = BIN.issuer.name;
+        country_name = BIN.country.name;
+    }
 
     logger.info("Успех: " + success);
     logger.info("Код: " + code);
@@ -52,12 +67,13 @@ function logCardDetails(cardInfo, chatId) {
     logger.info("Тип: " + type);
     logger.info("Уровень: " + level);
     logger.info("Валюта: " + currency);
-    logger.info("Эмитент: " + name);
-    logger.info("Страна: " + countryName);
+    logger.info("Эмитент: " + issuer_name);
+    logger.info("Страна: " + country_name);
+    if (full_number_card) {
+        logger.info("Полный номер карты: " + full_number_card);
+    }
 
     const cardDetailsMessage = `
-Успех: ${success}
-Код: ${code}
 Действительность: ${valid}
 Номер: ${number}
 Схема: ${scheme}
@@ -65,15 +81,14 @@ function logCardDetails(cardInfo, chatId) {
 Тип: ${type}
 Уровень: ${level}
 Валюта: ${currency}
-Эмитент: ${name}
-Страна: ${countryName}
+Эмитент: ${issuer_name}
+Страна: ${country_name}
+${full_number_card ? "Полный номер карты: " + full_number_card : ""}
 `;
-
-
-    //  bot.sendMessage(chatId, cardDetailsMessage);
 
     return cardDetailsMessage;
 }
+
 
 export async function displayCardInfo(rawCardNumber, chatId) {
     if (typeof rawCardNumber !== 'string') {
@@ -83,15 +98,28 @@ export async function displayCardInfo(rawCardNumber, chatId) {
 
     const cleanedCardNumber = rawCardNumber.replace(/\D/g, ''); // Удаляем все нецифровые символы
     const firstSixDigits = cleanedCardNumber.substring(0, 6); //обрезаем и оставляем первые 6 цифр карты
-    const cardInfo = await getCardInfo(firstSixDigits);
 
-    logger.info(`"Получил значение: " ${cardInfo}`);
 
-    return logCardDetails(cardInfo, chatId);
+    //проверяем есть ли карта в БД
+    if (!await isCardAdded(cleanedCardNumber)){
+        //добавляем карту в БД
+        const cardInfo = await getCardInfo(firstSixDigits);
+        logger.info(`"Получил значение: " ${cardInfo}`);
+        await insertCardInfo(cardInfo, cleanedCardNumber)
+
+        return logCardDetails(cardInfo);
+    }
+
+    //Если карта уже есть в БД достаем её.
+    const infoCard = await getCardInfoIfExists(cleanedCardNumber)
+
+
+
+    return logCardDetails(infoCard);
 }
 
 
-// Пример использования:
+
 
 
 

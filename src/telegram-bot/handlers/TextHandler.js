@@ -355,3 +355,4 @@ export async function handleVoice(msg, bot) {
             'Скоро меня научат)');
     }
 }
+

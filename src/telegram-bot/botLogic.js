@@ -154,12 +154,5 @@ export async function handlePreCheckoutQuery(bot, preCheckoutQuery) {
     }
 }
 
-//Принимает номер банковской карты убирает пробелы и отдает первые 6 цифр
-export function processCardNumber(cardNumber) {
-    try {
-    const firstFourDigits = cardNumber.substring(0, 6);  // берем первые четыре цифры
-    return { firstFourDigits };
-    }catch (error){
 
-    }
-}
+
