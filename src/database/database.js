@@ -310,7 +310,7 @@ export async function getText(id) {
 
         } else {
             result = 'Текста в массиве нету';
-           // console.log('Текста в массиве нету')
+           // console.log('Текста в массиве нет')
         }
 
     } catch (error) {

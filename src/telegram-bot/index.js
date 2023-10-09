@@ -14,7 +14,7 @@ try {
     const agent = new HttpsProxyAgent(proxyUrl);
     bot = new TelegramBot(token, {polling: true, request: {agent}});
 } catch (err) {
-    logger.error("Глобальная ошибка ёбаный рот! пытаюсь обработать ошибку! " + err);
+    logger.error("Глобальная ошибка рваный рот) пытаюсь обработать ошибку! " + err);
 }
 
 export { bot };
