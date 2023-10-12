@@ -12,7 +12,8 @@ let bot;
 try {
     const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
     const agent = new HttpsProxyAgent(proxyUrl);
-    bot = new TelegramBot(token, {polling: true, request: {agent}});
+
+    bot = new TelegramBot(token, {polling: true, /*request: {agent}*/});
 } catch (err) {
     logger.error("Глобальная ошибка рваный рот) пытаюсь обработать ошибку! " + err);
 }
