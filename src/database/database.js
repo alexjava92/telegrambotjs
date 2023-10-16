@@ -64,7 +64,7 @@ export async function getIdUser(id) {
 
         } else {
             result = 'Текста в массиве нету';
-            // console.log('Текста в массиве нету')
+            // console.log('Текста в массиве нет')
         }
 
     } catch (error) {
