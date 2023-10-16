@@ -44,7 +44,7 @@ export async function getIdUser(id) {
         password: 'Cjprvsyp040592',
         port: 5432,
     });
-
+    pg_dump -U [postgres] -h [localhost] -p [5432] [gpt] > backup.sql
     try {
         // Подключаемся к базе данных
         await client.connect();
