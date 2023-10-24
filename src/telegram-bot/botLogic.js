@@ -114,7 +114,7 @@ export async function sendInvoice(chatId) {
     const title = "Премиум";
     const description = "Подписка на месяц с неограниченным доступом к функционалу бота.";
     const payload = "YourPayload";  // Полезная нагрузка для внутренних нужд
-    const providerToken = "381764678:TEST:66777";  // Токен поставщика платежей
+    const providerToken = "390540012:LIVE:41598";  // Токен поставщика платежей
     //const startParameter = "test";
     const currency = "RUB";  // Валюта
     const prices = [
