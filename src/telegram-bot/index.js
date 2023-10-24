@@ -4,8 +4,8 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import {handleText, handleVoice} from "./handlers/TextHandler.js";
 import {handleCallbackQuery} from "./handlers/TextHandler.js";
 import {proxy, token} from "./config/Config.js";
-import {ADMIN, handlePreCheckoutQuery} from "./botLogic.js";
-import {checkAndSetSubscriptionStatus} from "../database/database.js";
+import {ADMIN, handlePreCheckoutQuery, handleSuccessfulPayment} from "./botLogic.js";
+import {checkAndSetSubscriptionStatus, savePaymentInfo} from "../database/database.js";
 
 let bot;
 
@@ -31,8 +31,14 @@ try {
     bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
     bot.on('voice', (msg) => handleVoice(msg, bot));
     bot.on('pre_checkout_query', async (preCheckoutQuery,) => {
+        //разрешения для оплаты с карты
         await handlePreCheckoutQuery(bot, preCheckoutQuery);
     });
+    bot.on('successful_payment', async (message) => {
+        // Проверка платежа
+        await handleSuccessfulPayment(bot, message)
+    });
+
 
 } catch (err) {
     console.log(err)

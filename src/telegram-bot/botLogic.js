@@ -4,7 +4,7 @@ import {
     addStatus,
     addStatusOne,
     getIdUser,
-    getUserDetailsFromDB, resetResponseCount, setSubscriptionActive, setSubscriptionEndDate,
+    getUserDetailsFromDB, resetResponseCount, savePaymentInfo, setSubscriptionActive, setSubscriptionEndDate,
     updateUserNameAndFirstName
 } from "../database/database.js";
 import {runUserExist} from "../database/database.js";
@@ -118,7 +118,7 @@ export async function sendInvoice(chatId) {
     //const startParameter = "test";
     const currency = "RUB";  // Валюта
     const prices = [
-        {label: "Премиум подписка", amount: 15400}
+        {label: "Премиум подписка", amount: 10000}
     ];
 
 
@@ -134,23 +134,44 @@ export async function sendInvoice(chatId) {
 export async function handlePreCheckoutQuery(bot, preCheckoutQuery) {
 
     try {
-        // Подтверждение оплаты
+        // разрешение оплаты
         await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
-        const chatId = preCheckoutQuery.from.id;
-        logger.info(`Успешная оплата от ${preCheckoutQuery.from.first_name}`);
-        await bot.sendMessage(ADMIN, `Оплата подписки от ${preCheckoutQuery.from.first_name}`);
-        await bot.sendMessage(chatId, `👌 Спасибо за оплату ${preCheckoutQuery.from.first_name}, доступно неограниченное количество запросов!`);
+        logger.info("Оплата разрешена, ожидаем оплаты")
+
+
+    } catch (error) {
+        logger.error('Ошибка при обработке оплаты:', error);
+        await bot.sendMessage(ADMIN, `Ошибка при разрешении оплаты от ${preCheckoutQuery.from.first_name} ${error}`);
+        // Отправить ошибку при оплате (если что-то пошло не так)
+        await bot.answerPreCheckoutQuery(preCheckoutQuery.id, false, {
+            error_message: "Что-то пошло не так, попробуйте снова позже."
+        });
+    }
+}
+
+export async function handleSuccessfulPayment(bot, message) {
+
+    try {
+        // Запись информации о платеже в базу данных (пример)
+        const payment = message.successful_payment.telegram_payment_charge_id;
+        await savePaymentInfo(message.chat.id, payment);
+        console.log(message)
+
+        // Подтверждение оплаты
+
+        const chatId = message.chat.id;
+        logger.info(`Успешная оплата от ${message.from.first_name}`);
+        await bot.sendMessage(ADMIN, `Оплата подписки от ${message.from.first_name}`);
+        await bot.sendMessage(chatId, `👌 Спасибо за оплату ${message.from.first_name}, доступно неограниченное количество запросов!`);
         await setSubscriptionActive(chatId)
         await resetResponseCount(chatId)
         await setSubscriptionEndDate(chatId)
 
     } catch (error) {
-        logger.error('Ошибка при обработке оплаты:', error);
-        await bot.sendMessage(ADMIN, `Ошибка при обработке оплаты от ${preCheckoutQuery.from.first_name} ${error}`);
+        logger.error("Ошибка при обработке успешного платежа:", error);
+        await bot.sendMessage(ADMIN, `Ошибка при обработке оплаты от ${message.from.first_name} ${error}`);
         // Отправить ошибку при оплате (если что-то пошло не так)
-        await bot.answerPreCheckoutQuery(preCheckoutQuery.id, false, {
-            error_message: "Что-то пошло не так, попробуйте снова позже."
-        });
+        await bot.sendMessage(message.chat.id, "Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
     }
 }
 

@@ -32,7 +32,7 @@ async function runQuery() {
     }
 }
 
-//Отдает idUser нормер пользователя из БД
+//Отдает idUser номер пользователя из БД
 export async function getIdUser(id) {
     let result;
     let result1;
@@ -781,7 +781,41 @@ export async function checkAndSetSubscriptionStatus() {
     }
 }
 
+//Запись информации о платеже пользователя
+export async function savePaymentInfo(chatId, paymentInfo) {
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
 
+    let result;
+
+    try {
+        await client.connect();
+
+        const query = {
+            text: 'UPDATE usergpt SET payment_info = $1 WHERE chatid = $2',
+            values: [paymentInfo, chatId],
+        };
+        const res = await client.query(query);
+
+        if (res.rowCount > 0) {
+            result = 'Информация о платеже обновлена';
+        } else {
+            result = 'Пользователь не найден';
+        }
+
+    } catch (error) {
+        logger.error('Ошибка при выполнении запроса:', error);
+    } finally {
+        await client.end();
+    }
+
+    return result;
+}
 
 
 
