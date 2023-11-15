@@ -1,0 +1,7 @@
+
+pg_dump -U postgres -d gpt -s > db_structure.sql
+
+pg_dump -U postgres -d gpt -s | Out-File -FilePath db_structure.sql
+
+pg_dump -h localhost -U myuser -s -f mydb_structure.sql mydb
+
