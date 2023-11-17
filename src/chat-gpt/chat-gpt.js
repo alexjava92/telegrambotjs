@@ -2,11 +2,17 @@ import { config } from "dotenv";
 import { Configuration, OpenAIApi } from "openai";
 import { addNewText, getText } from "../database/database.js";
 import { logger } from "../logger/logger.js";
+import {proxy} from "./configGpt.js";
+import {HttpsProxyAgent} from "https-proxy-agent";
 
 config();
 
+const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
+const agent = new HttpsProxyAgent(proxyUrl);
+
 const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
+    axios: { agent },
 });
 const openai = new OpenAIApi(configuration);
 

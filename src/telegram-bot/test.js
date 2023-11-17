@@ -1,28 +1,40 @@
-import * as https from "https";
-import xml2js from "xml2js";
+// Импорт с использованием ESM синтаксиса
+import { Configuration, OpenAIApi } from "openai";
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import {proxy} from "../chat-gpt/configGpt.js";
+import { config } from "dotenv";
 
-https.get('https://kassa.cc/valuta.xml', (res) => {
-    let data = '';
 
-    // A chunk of data has been received.
-    res.on('data', (chunk) => {
-        data += chunk;
-    });
+config();
 
-    // The whole response has been received.
-    res.on('end', () => {
-        xml2js.parseString(data, function(err, result) {
-            if(err) {
-                console.error(err);
-            } else {
-                let items = result['root']['item'];
-                for(let i = 0; i < items.length; i++) {
-                    console.log(items[i]);
-                }
-            }
-        });
-    });
+const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
+const agent = new HttpsProxyAgent(proxyUrl);
 
-}).on('error', (err) => {
-    console.error("Error: " + err.message);
+
+// Конфигурация OpenAI
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+    axios: { agent },
 });
+
+const openai = new OpenAIApi(configuration);
+
+async function getChatGptResponse(question) {
+    try {
+        const response = await openai.createChatCompletion({
+            model: "gpt-3.5-turbo",
+            messages: [
+                { role: "system", content: "You are a helpful assistant." },
+                { role: "user", content: question }
+            ]
+        });
+        return response.data.choices[0].message.content;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+}
+
+// Использование
+const question = "привет как дела?";
+getChatGptResponse(question).then(response => console.log(response));
