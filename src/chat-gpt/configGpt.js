@@ -1,6 +1,6 @@
 
 export const proxy = {
-    host: '46.3.232.123',
-    port: '8000',
-    auth: 'Y7ehkh:JZMuZb',
+    host: '185.98.43.160',
+    port: '5jEc10',
+    auth: 'Y7ehkh:0w5y0g',
 };
