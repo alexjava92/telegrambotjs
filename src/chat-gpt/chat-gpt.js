@@ -16,6 +16,25 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
+export async function generateImage(prompt) {
+    try {
+        const response = await openai.createImage({
+            model: "dall-e-2",
+            prompt: prompt,
+            quality: "standard",
+            n: 2, // Количество генерируемых изображений (от 1 до 10)
+            size: "1024x1024", // Размер генерируемых изображений (256x256, 512x512, или 1024x1024)
+        });
+
+        const imageUrl = response.data.data[0].url;
+        console.log("Сгенерированное изображение:", imageUrl);
+        return imageUrl;
+    } catch (error) {
+        console.error("Error generating image:", error);
+        return "Ошибка при генерации изображения.";
+    }
+}
+
 async function retrieveConversationHistory(chatId) {
     let massText = await getText(chatId);
     let conversationHistory = [];

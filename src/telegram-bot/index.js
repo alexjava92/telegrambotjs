@@ -6,6 +6,8 @@ import {handleCallbackQuery} from "./handlers/TextHandler.js";
 import {proxy, token} from "./config/Config.js";
 import {ADMIN, handlePreCheckoutQuery, handleSuccessfulPayment} from "./botLogic.js";
 import {checkAndSetSubscriptionStatus, savePaymentInfo} from "../database/database.js";
+import openai from "openai";
+import {generateImage} from "../chat-gpt/chat-gpt.js";
 
 let bot;
 
@@ -24,11 +26,22 @@ logger.info('Приложение запущено');
 logger.info('Запущена проверка подписок раз в 24 часа', setInterval(checkAndSetSubscriptionStatus, 24 * 60 * 60 * 1000));
 
 
-
 try {
+    bot.onText(/\/image (.+)/, async (msg, match) => {
+        const chatId = msg.chat.id;
+        const prompt = match[1]; // Получаем описание изображения из сообщения
 
-    bot.on('text', (msg) => handleText(msg, bot));
-    bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
+
+        try {
+            const imageUrl = await generateImage(prompt); // Генерируем изображение
+            await bot.sendPhoto(chatId, imageUrl); // Отправляем сгенерированное изображение
+        } catch (error) {
+            await bot.sendMessage(chatId, "Ошибка при генерации изображения.");
+            console.error("Error generating image:", error);
+        }
+    });
+    /*bot.on('text', (msg) => handleText(msg, bot));
+    bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));*/
     bot.on('voice', (msg) => handleVoice(msg, bot));
     bot.on('pre_checkout_query', async (preCheckoutQuery,) => {
         //разрешения для оплаты с карты

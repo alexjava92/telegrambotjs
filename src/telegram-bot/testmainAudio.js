@@ -1,23 +1,5 @@
-import {Configuration, OpenAIApi} from "openai";
-import fs from "fs";
-import { config } from 'dotenv';
+import {generateImage} from "../chat-gpt/chat-gpt.js";
 
-config()
-
-let textAudio;
-
-const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-const resp = await openai.createTranscription(
-    await fs.createReadStream("file_5.oga"),
-    "whisper-1"
-
-
-);
-
-console.log(resp.data.text)
-
-textAudio = resp.data.text
+const imagePrompt = "Красивый закат над горами";
+const imageUrl = await generateImage(imagePrompt);
 

@@ -13,6 +13,7 @@
     "@google-cloud/speech": "^5.4.1",
     "@types/chart.js": "^2.9.38",
     "axios": "^1.5.1",
+    "axios-debug-log": "^1.0.0",
     "chart.js": "^4.4.0",
     "dotenv": "^16.0.3",
     "fluent-ffmpeg": "^2.1.2",
