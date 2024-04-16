@@ -19,10 +19,9 @@ const openai = new OpenAIApi(configuration);
 export async function generateImage(prompt) {
     try {
         const response = await openai.createImage({
-            model: "dall-e-2",
+            model: "dall-e-3",
             prompt: prompt,
-            quality: "standard",
-            n: 2, // Количество генерируемых изображений (от 1 до 10)
+            n: 1, // Количество генерируемых изображений (от 1 до 10)
             size: "1024x1024", // Размер генерируемых изображений (256x256, 512x512, или 1024x1024)
         });
 

@@ -33,6 +33,7 @@ try {
 
 
         try {
+            await bot.sendMessage(chatId, "рисую...")
             const imageUrl = await generateImage(prompt); // Генерируем изображение
             await bot.sendPhoto(chatId, imageUrl); // Отправляем сгенерированное изображение
         } catch (error) {
@@ -40,8 +41,8 @@ try {
             console.error("Error generating image:", error);
         }
     });
-    /*bot.on('text', (msg) => handleText(msg, bot));
-    bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));*/
+    bot.on('text', (msg) => handleText(msg, bot));
+    bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
     bot.on('voice', (msg) => handleVoice(msg, bot));
     bot.on('pre_checkout_query', async (preCheckoutQuery,) => {
         //разрешения для оплаты с карты
@@ -51,6 +52,7 @@ try {
         // Проверка платежа
         await handleSuccessfulPayment(bot, message)
     });
+
 
 
 } catch (err) {

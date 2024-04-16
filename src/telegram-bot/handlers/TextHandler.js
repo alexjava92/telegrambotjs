@@ -102,7 +102,11 @@ export async function handleText(msg, bot) {
     // logger.info(JSON.stringify(msg))
     logger.info(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
-
+// Проверяем, является ли сообщение командой /image
+    if (messageText.startsWith('/image')) {
+        // Если да, то пропускаем обработку этой команды в handleText
+        return;
+    }
     await exist(chatId, username, first_name, messageText);
     await checkingYourSubscription(chatId);
     // Здесь вызываем нашу функцию проверки пользователя и подписки
