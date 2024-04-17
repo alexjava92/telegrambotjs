@@ -9,7 +9,7 @@ import {
     getUserDetailsFromDB, incrementResponseCount,
     resetResponseCount, setInitialValuesForUser, setResponseCount,
 } from "../../database/database.js";
-import {askQuestion} from "../../chat-gpt/chat-gpt.js";
+import {askQuestion, generateImage} from "../../chat-gpt/chat-gpt.js";
 import {transcribeAudio} from "../../GoogleSpeechText/GoogleSpeechToText.js";
 import {bot} from "../index.js";
 import moment from "moment-timezone";
@@ -109,10 +109,7 @@ export async function handleText(msg, bot) {
     const canProceed = await handleUserRequest(chatId, messageText);
     if (!canProceed) return; // Если пользователь исчерпал лимит, мы завершаем обработку
     // Проверяем, является ли сообщение командой /image
-    if (messageText.startsWith('/image')) {
-        // Если да, то пропускаем обработку этой команды в handleText
-        return;
-    }
+
 
     if (messageText === "/start") {
         if (await handleUserMessage(msg)) {
@@ -136,6 +133,19 @@ export async function handleText(msg, bot) {
         if (await handleUserMessage(msg)) {
             await bot.sendMessage(chatId, "История диалога успешно сброшена!");
             await deleteGetText(chatId);
+        }
+    } else if (messageText.startsWith('/image')) {
+        const prompt = messageText.slice(7); // Получаем описание изображения из сообщения
+        console.log('prompt', prompt)
+
+        try {
+            await bot.sendMessage(chatId, "рисую...");
+            const imageUrl = await generateImage(prompt); // Генерируем изображение
+            await bot.sendPhoto(chatId, imageUrl); // Отправляем сгенерированное изображение
+            return imageUrl; // Возвращаем URL сгенерированного изображения
+        } catch (error) {
+            await bot.sendMessage(chatId, "Ошибка при генерации изображения.");
+            console.error("Error generating image:", error);
         }
     } else if (messageText === "Начать диалог") {
         if (await handleUserMessage(msg)) {

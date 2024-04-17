@@ -27,20 +27,7 @@ logger.info('Запущена проверка подписок раз в 24 ч�
 
 
 try {
-    bot.onText(/\/image (.+)/, async (msg, match) => {
-        const chatId = msg.chat.id;
-        const prompt = match[1]; // Получаем описание изображения из сообщения
 
-
-        try {
-            await bot.sendMessage(chatId, "рисую...")
-            const imageUrl = await generateImage(prompt); // Генерируем изображение
-            await bot.sendPhoto(chatId, imageUrl); // Отправляем сгенерированное изображение
-        } catch (error) {
-            await bot.sendMessage(chatId, "Ошибка при генерации изображения.");
-            console.error("Error generating image:", error);
-        }
-    });
     bot.on('text', (msg) => handleText(msg, bot));
     bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
     bot.on('voice', (msg) => handleVoice(msg, bot));
@@ -52,8 +39,6 @@ try {
         // Проверка платежа
         await handleSuccessfulPayment(bot, message)
     });
-
-
 
 } catch (err) {
     console.log(err)
