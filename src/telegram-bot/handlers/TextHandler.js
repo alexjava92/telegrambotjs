@@ -26,6 +26,7 @@ import {
     getAnswerFromOpenAI,
     transcribeAudio
 } from "../audio/AudioFunctions.js";
+import {processUserInput} from "../audio/ProcessUserInput.js";
 const ffmpegPath = ffmpegInstaller.path;
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -385,15 +386,12 @@ export async function handleCallbackQuery(callbackQuery, bot) {
 }
 
 
-
-
-export async function handleVoice(msg, bot) {
+async function getTranscription(msg, bot) {
     const { chat: { id: chatId }, voice: { file_id: fileId } } = msg;
-    let tempFilePath, mp3FilePath, audioFile;
+    let tempFilePath, mp3FilePath;
 
     try {
         logger.info(`Получено голосовое сообщение от пользователя ${chatId}`);
-
         const file = await bot.getFile(fileId);
         const fileLink = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
 
@@ -409,26 +407,32 @@ export async function handleVoice(msg, bot) {
 
         mp3FilePath = await convertAudioToMP3(tempFilePath);
         const transcription = await transcribeAudio(mp3FilePath, chatId, bot);
-        const answer = await getAnswerFromOpenAI(transcription, chatId);
-        audioFile = await generateAudioFromText(answer);
+        logger.info(`Текст голосового сообщения: ${transcription}`);
 
-        await bot.sendMessage(chatId, answer);
-        await bot.sendAudio(chatId, audioFile);
+        return transcription;
     } catch (error) {
-        logger.error('Ошибка при транскрибировании голосового сообщения:', error);
-        await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при транскрибировании голосового сообщения. Скоро меня научат)');
+        logger.error('Ошибка при получении транскрипции голосового сообщения:', error);
+        return null;
     } finally {
         if (tempFilePath && mp3FilePath) {
             await deleteTemporaryFiles(tempFilePath, mp3FilePath);
         }
-        if (audioFile) {
-            try {
-                await fs.promises.unlink(audioFile);
-                logger.info(`Аудиофайл удален после успешного ответа: ${audioFile}`);
-            } catch (err) {
-                logger.error(`Ошибка удаления аудиофайла после успешного ответа: ${err}`);
-            }
-        }
     }
 }
 
+export async function handleVoice(msg, bot) {
+    const { chat: { id: chatId } } = msg;
+
+    try {
+        const transcription = await getTranscription(msg, bot);
+
+        if (transcription) {
+            await processUserInput(transcription, bot, chatId);
+        } else {
+            await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при транскрибировании голосового сообщения.');
+        }
+    } catch (error) {
+        logger.error('Ошибка при обработке голосового сообщения:', error);
+        await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при обработке голосового сообщения.');
+    }
+}
