@@ -21,7 +21,9 @@ export async function processUserInput(transcription, bot, chatId) {
         const answer = await getAnswerFromOpenAI(transcription, chatId);
         const audioFile = await generateAudioFromText(answer);
 
-        await bot.sendMessage(chatId, answer);
+        await bot.sendMessage(chatId, answer, {
+            parse_mode: 'Markdown'
+        });
         await bot.sendAudio(chatId, audioFile);
 
         try {
