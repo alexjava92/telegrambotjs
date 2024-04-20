@@ -1,4 +1,3 @@
-// handlers/textHandler.js
 import {logger} from "../../logger/logger.js";
 import {checkingYourSubscription, exist, sendInvoice} from "../botLogic.js";
 import {
@@ -9,11 +8,29 @@ import {
     getUserDetailsFromDB, incrementResponseCount,
     resetResponseCount, setInitialValuesForUser, setResponseCount,
 } from "../../database/database.js";
-import {askQuestion, generateImage} from "../../chat-gpt/chat-gpt.js";
-import {transcribeAudio} from "../../GoogleSpeechText/GoogleSpeechToText.js";
+import {askQuestion, chat, generateAudio, generateAudioInText, generateImage} from "../../chat-gpt/chat-gpt.js";
+
 import {bot} from "../index.js";
 import moment from "moment-timezone";
 import {displayCardInfo} from "../../BinChecker/BinChecker.js";
+import * as fs from "fs";
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import { promisify } from 'util';
+import {createWriteStream, unlink} from "fs";
+import { pipeline } from 'stream';
+import {token} from "../config/Config.js";
+import {
+    convertAudioToMP3, deleteTemporaryFiles,
+    generateAudioFromText,
+    getAnswerFromOpenAI,
+    transcribeAudio
+} from "../audio/AudioFunctions.js";
+const ffmpegPath = ffmpegInstaller.path;
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+
+
 
 
 const keyboardText = {
@@ -51,7 +68,6 @@ let status_1;
 
 const usersState = new Map(); // Для хранения состояния пользователей
 
-
 //обрезает и отправляет сообщение если текст больше 4к символов
 async function sendMessageInChunks(chatId, text) {
     // Ваш код для разбиения сообщения и отправки его по частям
@@ -59,7 +75,9 @@ async function sendMessageInChunks(chatId, text) {
     const textLength = text.length;
 
     if (textLength <= maxMessageLength) {
-        await bot.sendMessage(chatId, text);
+        await bot.sendMessage(chatId, text, {
+                parse_mode: 'Markdown'
+        });
     } else {
         let startIndex = 0;
         let endIndex = maxMessageLength;
@@ -135,17 +153,41 @@ export async function handleText(msg, bot) {
             await deleteGetText(chatId);
         }
     } else if (messageText.startsWith('/image')) {
-        const prompt = messageText.slice(7); // Получаем описание изображения из сообщения
+        const prompt = messageText.slice(7);
         console.log('prompt', prompt)
 
         try {
-            await bot.sendMessage(chatId, "рисую...");
-            const imageUrl = await generateImage(prompt); // Генерируем изображение
-            await bot.sendPhoto(chatId, imageUrl); // Отправляем сгенерированное изображение
-            return imageUrl; // Возвращаем URL сгенерированного изображения
+            const sentMessage = await bot.sendMessage(chatId, "рисую... 5 - 15 секунд!");
+            const messageId = sentMessage.message_id;
+
+            const imageUrl = await generateImage(prompt);
+
+            if (imageUrl) {
+                await bot.sendPhoto(chatId, imageUrl, {
+                    caption: prompt,
+                    parse_mode: 'Markdown'
+                });
+                await bot.deleteMessage(chatId, messageId); // Удаляем сообщение "рисую..."
+            } else {
+                await bot.deleteMessage(chatId, messageId); // Удаляем сообщение "рисую..."
+                await bot.sendMessage(chatId, 'Произошла ошибка при генерации изображения. Измените запрос');
+            }
         } catch (error) {
-            await bot.sendMessage(chatId, "Ошибка при генерации изображения.");
-            console.error("Error generating image:", error);
+            console.error("Error generating image:", error.message);
+        }
+    } else if (messageText.startsWith('/voice')) {
+        try {
+            const text = messageText.slice(6); // Получаем текст для конвертации в аудио
+            const audioFilePath = await generateAudio(text);
+
+            if (audioFilePath) {
+                await bot.sendAudio(chatId, audioFilePath);
+            } else {
+                await bot.sendMessage(chatId, 'Произошла ошибка при генерации аудио. Пожалуйста, попробуйте еще раз.');
+            }
+        } catch (error) {
+            console.error('Error generating audio:', error.message);
+            await bot.sendMessage(chatId, 'Произошла ошибка при генерации аудио. Пожалуйста, попробуйте еще раз.');
         }
     } else if (messageText === "Начать диалог") {
         if (await handleUserMessage(msg)) {
@@ -214,7 +256,7 @@ export async function handleText(msg, bot) {
                             usersState.set(chatId, false);
                         }
                     } catch (error) {
-                        logger.error("Произошла ошибка при обработке сообщения:", error);
+                        logger.error("Произошла ошибка при обработке сообщения:", error.message);
                         await bot.sendMessage(chatId, 'Упс что то пошло не так. Нажми /start и отправь вопрос заново')
                         usersState.set(chatId, false);
                         await deleteGetText(chatId)
@@ -222,7 +264,7 @@ export async function handleText(msg, bot) {
                     }
                 }
             } catch (error) {
-                logger.error("Произошла ошибка при проверке состояния:", error);
+                logger.error("Произошла ошибка при проверке состояния:", error.message);
             }
         }
     }
@@ -249,14 +291,8 @@ async function handleUserRequest(chatId, message) {
         console.log("date BD:", dbDate);
         console.log("Last response date from DB:", userDetails.last_response_date);
         await resetResponseCount(chatId);
-        logger.info("Код сработал ")
+
     }
-    // if (userDetails.last_response_date !== currentDate) {
-    //     console.log("Current date:", currentDate);
-    //     console.log("Last response date from DB:", userDetails.last_response_date);
-    //     await resetResponseCount(chatId);
-    //     logger.info("Код сработал ")
-    // }
 
     if (userDetails.subscription_status === 'active') {
         return true;
@@ -348,25 +384,51 @@ export async function handleCallbackQuery(callbackQuery, bot) {
     }
 }
 
-// handlers/voiceHandler.js
-export async function handleVoice(msg, bot) {
-    // Ваша логика обработки голосовых сообщений
-    const {chat: {id: chatId, first_name: firstName}, voice: {file_id: fileId}} = msg;
 
-    // Получите ссылку на файл голосового сообщения
-    const file = await bot.getFile(fileId);
-    const fileLink = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+
+
+export async function handleVoice(msg, bot) {
+    const { chat: { id: chatId }, voice: { file_id: fileId } } = msg;
+    let tempFilePath, mp3FilePath, audioFile;
 
     try {
-        // Транскрибируйте голосовое сообщение
-        const transcription = await transcribeAudio(fileLink);
+        logger.info(`Получено голосовое сообщение от пользователя ${chatId}`);
 
-        // Отправьте текстовое сообщение с результатами транскрибирования
-        await bot.sendMessage(chatId, `🔊 Текст голосового сообщения:\n\n${transcription}`);
+        const file = await bot.getFile(fileId);
+        const fileLink = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+
+        logger.info(`Загружаю голосовое сообщение по ссылке: ${fileLink}`);
+
+        const response = await fetch(fileLink);
+        tempFilePath = `temp_${Date.now()}.${file.file_path.split('.').pop()}`;
+
+        await promisify(pipeline)(
+            response.body,
+            createWriteStream(tempFilePath)
+        );
+
+        mp3FilePath = await convertAudioToMP3(tempFilePath);
+        const transcription = await transcribeAudio(mp3FilePath, chatId, bot);
+        const answer = await getAnswerFromOpenAI(transcription, chatId);
+        audioFile = await generateAudioFromText(answer);
+
+        await bot.sendMessage(chatId, answer);
+        await bot.sendAudio(chatId, audioFile);
     } catch (error) {
-        console.error('Ошибка при транскрибировании голосового сообщения:', error);
-        await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при транскрибировании голосового сообщения. ' +
-            'Скоро меня научат)');
+        logger.error('Ошибка при транскрибировании голосового сообщения:', error);
+        await bot.sendMessage(chatId, '🚫 Извините, произошла ошибка при транскрибировании голосового сообщения. Скоро меня научат)');
+    } finally {
+        if (tempFilePath && mp3FilePath) {
+            await deleteTemporaryFiles(tempFilePath, mp3FilePath);
+        }
+        if (audioFile) {
+            try {
+                await fs.promises.unlink(audioFile);
+                logger.info(`Аудиофайл удален после успешного ответа: ${audioFile}`);
+            } catch (err) {
+                logger.error(`Ошибка удаления аудиофайла после успешного ответа: ${err}`);
+            }
+        }
     }
 }
 

@@ -92,7 +92,7 @@ export const checkingYourSubscription = async (chatId) => {
 
         }
     } catch (error) {
-        console.error('Ошибка при проверке подписки на канал:', error);
+        console.error('Ошибка при проверке подписки на канал:', error.message);
         await bot.sendMessage(chatId, 'Произошла ошибка при проверке подписки на канал. Пожалуйста, ' +
             'попробуйте позже.');
     }

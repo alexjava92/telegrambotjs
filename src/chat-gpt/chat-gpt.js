@@ -1,36 +1,81 @@
 import { config } from "dotenv";
-import { Configuration, OpenAIApi } from "openai";
 import { addNewText, getText } from "../database/database.js";
 import { logger } from "../logger/logger.js";
-import {proxy} from "./configGpt.js";
-import {HttpsProxyAgent} from "https-proxy-agent";
+import OpenAI from "openai";
+import * as path from "path";
+import * as fs from "fs";
+import {createReadStream} from "fs";
 
 config();
-
-const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
-const agent = new HttpsProxyAgent(proxyUrl);
-
-const configuration = new Configuration({
+const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    axios: { agent },
 });
-const openai = new OpenAIApi(configuration);
+
+export async function generateAudioInText(audioFile) {
+    try {
+        const audioStream = createReadStream(audioFile);
+
+        logger.API(`Transcribing audio file: ${audioFile}`); // логируем начало транскрибирования аудио
+
+        const transcription = await openai.audio.transcriptions.create({
+            file: audioStream,
+            model: "whisper-1",
+
+        });
+        const text = transcription.text;
+        if (!text || text.trim() === '') {
+            logger.error('Транскрипция не содержит текста');
+            return '';
+        }
+
+
+        logger.API(`Audio transcribed successfully: ${text}`); // логируем успешное транскрибирование аудио
+        return text;
+    } catch (error) {
+        logger.error('Ошибка при транскрибировании аудио:', error); // логируем ошибку транскрибирования аудио
+        return '';
+    }
+}
+
+export async function generateAudio(text) {
+    try {
+        const audioFile = path.resolve(`./audio/${Date.now()}.opus`);
+        logger.API(`Generating audio for text: ${text}`); // логируем начало генерации аудио
+
+        const response = await openai.audio.speech.create({
+            model: "tts-1-hd",
+            voice: "onyx",
+            input: text,
+            response_format: 'opus'
+        });
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        await fs.promises.writeFile(audioFile, buffer);
+
+        logger.API(`Audio file generated successfully: ${audioFile}`); // логируем успешную генерацию аудио
+        return audioFile;
+    } catch (error) {
+        logger.error("Error generating audio:", error); // логируем ошибку генерации аудио
+        return null;
+    }
+}
 
 export async function generateImage(prompt) {
     try {
-        const response = await openai.createImage({
+        logger.API(`Generating image for prompt: ${prompt}`); // логируем начало генерации изображения
+        const response = await openai.images.generate({
             model: "dall-e-3",
             prompt: prompt,
             n: 1, // Количество генерируемых изображений (от 1 до 10)
             size: "1024x1024", // Размер генерируемых изображений (256x256, 512x512, или 1024x1024)
         });
 
-        const imageUrl = response.data.data[0].url;
-        console.log("Сгенерированное изображение:", imageUrl);
+        const imageUrl = response.data[0].url;
+        logger.API(`Image generated successfully: ${imageUrl}`); // логируем успешную генерацию изображения
         return imageUrl;
     } catch (error) {
-        console.error("Error generating image:", error);
-        return "Ошибка при генерации изображения.";
+        logger.error("Error generating image:", error.message); // логируем ошибку генерации изображения
+        return false;
     }
 }
 
@@ -71,13 +116,14 @@ export async function chat(prompt, chatId) {
     const messageHistory = createMessageHistory(conversationHistory, prompt);
 
     try {
-        const response = await openai.createChatCompletion({
-            model: "gpt-3.5-turbo",
+        const response = await openai.chat.completions.create({
+            model: "gpt-4-turbo",
             messages: messageHistory,
         });
-
-        const answer = response.data.choices[0].message.content;
+        console.log('response', response)
+        const answer = response.choices[0].message.content;
         console.log("Длина текста:", answer.length);
+        console.log("answer:", answer);
         return answer;
     } catch (error) {
         console.error("Error calling OpenAI API:", error);

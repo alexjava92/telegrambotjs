@@ -1,44 +1,20 @@
-// Импорт с использованием ESM синтаксиса
-import { Configuration, OpenAIApi } from "openai";
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import { proxy } from "../chat-gpt/configGpt.js";
-import { config } from "dotenv";
-import axios from 'axios'; // Убедитесь, что axios установлен
+// Пример использования
+import {textToSpeech} from "../chat-gpt/chat-gpt.js";
+import * as fs from "fs";
 
-config(); // Загружаем переменные среды
+const text = "Привет, меня зовут Клод, и я - искусственный интеллект.";
+const voiceId = "alloy"; // Можно использовать другие голоса: echo, fable, onyx, nova, shimmer
 
-// Создаём агент прокси
-const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
-const httpsAgent = new HttpsProxyAgent(proxyUrl);
-
-// Создаём экземпляр axios с агентом прокси
-
-
-// Конфигурация OpenAI с использованием инстанса axios
-const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-    // Обратите внимание: никаких других изменений в конфигурации не требуется
-});
-
-const openai = new OpenAIApi(configuration); // Передаём инстанс axios при создании объекта OpenAIApi
-
-async function getChatGptResponse(question) {
-    try {
-        // Передаём конфигурацию axios как второй параметр в метод createChatCompletion
-        const response = await openai.createChatCompletion({
-            model: "gpt-3.5-turbo",
-            messages: [
-                { role: "system", content: "You are a helpful assistant." },
-                { role: "user", content: question }
-            ]
-        }, ); // Здесь мы передаём httpsAgent напрямую
-        return response.data.choices[0].message.content;
-    } catch (error) {
-        console.error(error);
-        return null;
-    }
-}
-
-// Использование
-const question = "привет как дела?";
-getChatGptResponse(question).then(response => console.log(response));
+textToSpeech(text, voiceId)
+    .then((audioData) => {
+        if (audioData) {
+            const audioPath = "./output.mp3";
+            fs.writeFileSync(audioPath, audioData);
+            console.log(`Аудиофайл сохранен: ${audioPath}`);
+        } else {
+            console.log("Не удалось сгенерировать аудио.");
+        }
+    })
+    .catch((error) => {
+        console.error("Ошибка:", error);
+    });

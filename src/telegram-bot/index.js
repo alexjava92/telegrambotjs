@@ -4,10 +4,9 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import {handleText, handleVoice} from "./handlers/TextHandler.js";
 import {handleCallbackQuery} from "./handlers/TextHandler.js";
 import {proxy, token} from "./config/Config.js";
-import {ADMIN, handlePreCheckoutQuery, handleSuccessfulPayment} from "./botLogic.js";
+import {handlePreCheckoutQuery, handleSuccessfulPayment} from "./botLogic.js";
 import {checkAndSetSubscriptionStatus, savePaymentInfo} from "../database/database.js";
-import openai from "openai";
-import {generateImage} from "../chat-gpt/chat-gpt.js";
+
 
 let bot;
 
@@ -27,7 +26,6 @@ logger.info('Запущена проверка подписок раз в 24 ч�
 
 
 try {
-
     bot.on('text', (msg) => handleText(msg, bot));
     bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
     bot.on('voice', (msg) => handleVoice(msg, bot));
