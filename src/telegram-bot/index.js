@@ -6,6 +6,7 @@ import {handleCallbackQuery} from "./handlers/TextHandler.js";
 import {proxy, token} from "./config/Config.js";
 import {handlePreCheckoutQuery, handleSuccessfulPayment} from "./botLogic.js";
 import {checkAndSetSubscriptionStatus, savePaymentInfo} from "../database/database.js";
+import {handlePhoto} from "./photo/handlePhoto.js";
 
 
 let bot;
@@ -37,6 +38,11 @@ try {
         // Проверка платежа
         await handleSuccessfulPayment(bot, message)
     });
+    bot.on('photo', async (msg) => {
+        // Обработка фотографий будет выполняться в другом файле
+        await handlePhoto(msg, bot);
+    });
+
 
 } catch (err) {
     console.log(err)

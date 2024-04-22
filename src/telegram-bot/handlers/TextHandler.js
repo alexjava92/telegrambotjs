@@ -5,15 +5,14 @@ import {
     deleteGetText, getResponseCount,
     getStatus,
     getStatusOne,
-    getUserDetailsFromDB, incrementResponseCount,
-    resetResponseCount, setInitialValuesForUser, setResponseCount,
+    getUserDetailsFromDB,
+    resetResponseCount, setResponseCount,
 } from "../../database/database.js";
-import {askQuestion, chat, generateAudio, generateAudioInText, generateImage} from "../../chat-gpt/chat-gpt.js";
+import {askQuestion, generateAudio, generateImage} from "../../chat-gpt/chat-gpt.js";
 
 import {bot} from "../index.js";
 import moment from "moment-timezone";
 import {displayCardInfo} from "../../BinChecker/BinChecker.js";
-import * as fs from "fs";
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { promisify } from 'util';
@@ -22,8 +21,6 @@ import { pipeline } from 'stream';
 import {token} from "../config/Config.js";
 import {
     convertAudioToMP3, deleteTemporaryFiles,
-    generateAudioFromText,
-    getAnswerFromOpenAI,
     transcribeAudio
 } from "../audio/AudioFunctions.js";
 import {processUserInput} from "../audio/ProcessUserInput.js";
@@ -165,7 +162,6 @@ export async function handleText(msg, bot) {
 
             if (imageUrl) {
                 await bot.sendPhoto(chatId, imageUrl, {
-                    caption: prompt,
                     parse_mode: 'Markdown'
                 });
                 await bot.deleteMessage(chatId, messageId); // Удаляем сообщение "рисую..."
