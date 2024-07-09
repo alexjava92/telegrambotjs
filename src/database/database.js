@@ -44,7 +44,7 @@ export async function getIdUser(id) {
         password: 'Cjprvsyp040592',
         port: 5432,
     });
-    pg_dump -U [postgres] -h [localhost] -p [5432] [gpt] > backup.sql
+
     try {
         // Подключаемся к базе данных
         await client.connect();
@@ -94,8 +94,7 @@ export async function runUserExist(id) {
 
     // Подключаемся к базе данных
     await client.connect()
-   // console.log('Соединение с БД открыто.')
-    // Выполняем SQL-запрос
+
     const query = {
         text: 'SELECT * FROM usergpt WHERE chatid = $1',
         values: [id],
@@ -104,21 +103,17 @@ export async function runUserExist(id) {
 
 
     if (res.rowCount > 0) {
-        // console.log('Пользователь существует')
         result = 'Пользователь существует'
     } else {
         result = 'Пользователья не существует'
-        // console.log('Пользователья не существует')
     }
     }catch (error) {
         logger.error('Ошибка при выполнении запроса:', error);
     } finally {
         await client.end();
-      //  console.log('Соединение с БД закрыто.')
+
     }
-
     return result
-
 }
 
 // Здесь ваш код для обновления userName и firstName на основе chatId в базе данных.
@@ -156,7 +151,7 @@ export async function updateUserNameAndFirstName(chatId, userName, firstName) {
 
     return result;
 }
-
+// получаем детали user это устаревший метод
 export async function getUserDetailsFromDB(chatId) {
     const client = new Client({
         user: 'postgres',
@@ -196,6 +191,64 @@ export async function getUserDetailsFromDB(chatId) {
 
     return userDetails;
 }
+// получаем детали user это новый метод заменяет getUserDetailsFromDB
+export async function getUserFromDB(chatId) {
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
+
+    let userDetails;
+
+    try {
+        await client.connect();
+
+        const query = {
+            text: `
+                SELECT id, chatid, username, first_name, messaget_text,
+                       column_status, column_status_1, response_count,
+                       subscription_status, last_response_date,
+                       subscription_end_date, payment_info, balance
+                FROM usergpt
+                WHERE chatid = $1
+            `,
+            values: [chatId],
+        };
+        const res = await client.query(query);
+
+        if (res.rowCount > 0) {
+            const row = res.rows[0];
+            userDetails = {
+                id: row.id,
+                chatId: row.chatid,
+                username: row.username,
+                firstName: row.first_name,
+                lastName: row.last_name,
+                messageText: row.messaget_text,
+                status: row.column_status,
+                status1: row.column_status_1,
+                responseCount: row.response_count,
+                subscriptionStatus: row.subscription_status,
+                lastResponseDate: row.last_response_date,
+                subscriptionEndDate: row.subscription_end_date,
+                paymentInfo: row.payment_info,
+                balance: row.balance,
+            };
+        }else {
+            return null;
+        }
+
+    } catch (error) {
+        logger.error('Ошибка при выполнении запроса:', error);
+    } finally {
+        await client.end();
+    }
+
+    return userDetails;
+}
 
 //Добавление нового пользователя в БД
 export async function addNewUser(id, username, firstName) {
@@ -216,7 +269,7 @@ export async function addNewUser(id, username, firstName) {
         // Выполняем SQL-запрос
         const query = {
             text: 'INSERT INTO usergpt (chatid, username, first_name, response_count, subscription_status, last_response_date) VALUES ($1, $2, $3, $4, $5, $6)',
-            values: [id, username, firstName, 0, 'active', new Date().toISOString().slice(0, 10)],
+            values: [id, username, firstName, 0, 'inactive', new Date().toISOString().slice(0, 10)],
         };
         const res = await client.query(query);
 
@@ -818,7 +871,158 @@ export async function savePaymentInfo(chatId, paymentInfo) {
     return result;
 }
 
+//Сумма пополнения баланса
+export async function savePaymentAmount(id, amount) {
+    let result;
 
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
+
+    try {
+        // Подключаемся к базе данных
+        await client.connect();
+
+        // Выполняем SQL-запрос
+        const query = {
+            text: 'UPDATE usergpt SET payment_amount = $1 WHERE chatid = $2',
+            values: [amount, id],
+        };
+
+        const res = await client.query(query);
+
+        if (res.rowCount > 0) {
+            result = 'Сумма пополнения сохранена';
+        } else {
+            result = 'Не удалось сохранить сумму пополнения';
+        }
+    } catch (error) {
+        console.error('Ошибка при выполнении запроса:', error);
+        result = 'Ошибка при сохранении суммы пополнения';
+    } finally {
+        await client.end();
+    }
+
+    return result;
+}
+
+export async function getPaymentAmount(id) {
+    let result;
+
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
+
+    try {
+        // Подключаемся к базе данных
+        await client.connect();
+
+        // Выполняем SQL-запрос
+        const query = {
+            text: 'SELECT payment_amount FROM usergpt WHERE chatid = $1',
+            values: [id],
+        };
+
+        const res = await client.query(query);
+
+        if (res.rows.length > 0) {
+            result = res.rows[0].payment_amount;
+        } else {
+            result = null;
+        }
+    } catch (error) {
+        logger.error('Ошибка при выполнении запроса:', error);
+        result = null;
+    } finally {
+        await client.end();
+    }
+
+    return result;
+}
+
+export async function setBalance(id, balance) {
+    let result;
+
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
+
+    try {
+        // Подключаемся к базе данных
+        await client.connect();
+
+        // Выполняем SQL-запрос
+        const query = {
+            text: 'UPDATE usergpt SET balance = $1 WHERE chatid = $2',
+            values: [balance, id],
+        };
+
+        const res = await client.query(query);
+
+        if (res.rowCount > 0) {
+            result = 'Баланс пользователя обновлен';
+        } else {
+            result = 'Не удалось обновить баланс пользователя';
+        }
+    } catch (error) {
+        logger.error('Ошибка при выполнении запроса:', error);
+        result = 'Ошибка при обновлении баланса пользователя';
+    } finally {
+        await client.end();
+    }
+
+    return result;
+}
+
+export async function getBalance(id) {
+    let result;
+
+    const client = new Client({
+        user: 'postgres',
+        host: 'localhost',
+        database: 'gpt',
+        password: 'Cjprvsyp040592',
+        port: 5432,
+    });
+
+    try {
+        // Подключаемся к базе данных
+        await client.connect();
+
+        // Выполняем SQL-запрос
+        const query = {
+            text: 'SELECT balance FROM usergpt WHERE chatid = $1',
+            values: [id],
+        };
+
+        const res = await client.query(query);
+
+        if (res.rows.length > 0) {
+            result = res.rows[0].balance;
+        } else {
+            result = null;
+        }
+    } catch (error) {
+        logger.error('Ошибка при выполнении запроса:', error);
+        result = null;
+    } finally {
+        await client.end();
+    }
+
+    return result;
+}
 
 
 

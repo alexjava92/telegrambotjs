@@ -7,5 +7,5 @@ export const proxy = {
 };*/
 
 export const OpenAiConfig = {
-    chat_version: 'gpt-4-turbo',
+    chat_version: 'gpt-4o',
 }

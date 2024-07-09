@@ -10,7 +10,9 @@
       <user-name>postgres</user-name>
       <schema-mapping>
         <introspection-scope>
-          <node kind="database" qname="gpt">
+          <node kind="database">
+            <name qname="gpt" />
+            <name qname="postgres" />
             <node kind="schema" qname="public" />
           </node>
         </introspection-scope>

@@ -7,7 +7,7 @@ export async function processUserInput(transcription, bot, chatId) {
     if (transcription.startsWith('Нарисуй')) {
         const drawingMessage = await bot.sendMessage(chatId, "Рисую для тебя....");
         const prompt = transcription.slice(8); // Извлекаем prompt из текста после слова "нарисуй"
-        const imageUrl = await generateImage(prompt);
+        const imageUrl = await generateImage(prompt, chatId);
 
         if (imageUrl) {
             await bot.sendPhoto(chatId, imageUrl);

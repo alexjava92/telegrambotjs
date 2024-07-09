@@ -88,7 +88,8 @@ async function downloadAndSavePhoto(fileId, bot) {
 }
 
 async function sendPhotoDescriptionAndAddToHistory(chatId, prompt, imageDescription, bot) {
-    await bot.sendMessage(chatId, `${imageDescription}`);
+    console.log(imageDescription)
+    await bot.sendMessage(chatId, imageDescription, { parse_mode: 'Markdown' });
     await addToHistory(prompt, imageDescription, chatId);
 }
 

@@ -6,11 +6,55 @@ import * as path from "path";
 import * as fs from "fs";
 import {createReadStream} from "fs";
 import {OpenAiConfig} from "./configGpt.js";
+import {User} from "../Users/User.js";
+import {useOpenAIModel} from "./prices/price.js";
+import {bot} from "../telegram-bot/index.js";
 
 config();
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+export async function callOpenAIModel(model, usage, prompt) {
+    if (model === 'dall-e-3') {
+        try {
+            logger.API(`Generating image for prompt: ${prompt}`);
+            const response = await openai.images.generate({
+                model: "dall-e-3",
+                prompt: prompt,
+                n: 1,
+                size: "1024x1024",
+            });
+            const imageUrl = response.data[0].url;
+            logger.API(`Image generated successfully: ${imageUrl}`);
+            return imageUrl;
+        } catch (error) {
+            logger.error("Error generating image:", error.message);
+            return null;
+        }
+    }
+    logger.warn(`Unsupported model: ${model}`);
+    return null;
+}
+
+export async function generateImage(prompt, chatId) {
+    const usage = prompt.length;
+    const result = await useOpenAIModel(chatId, 'dall-e-3', usage, prompt);
+
+    if (result === 'Недостаточно средств на балансе. Пожалуйста, пополните баланс.') {
+        logger.error(result);
+        bot.sendMessage(chatId, result); // Отправка сообщения пользователю
+        return null;
+    }
+
+    if (result === null) {
+        logger.error('Ошибка при генерации изображения.');
+        return null;
+    }
+
+    logger.API(`Generating image for prompt: ${prompt}`);
+    return result;
+}
 
 export async function describeImage(photoFile, chatId, prompt) {
     if(!prompt) {
@@ -102,7 +146,7 @@ export async function generateAudio(text) {
     }
 }
 
-export async function generateImage(prompt) {
+/*export async function generateImage(prompt) {
     try {
         logger.API(`Generating image for prompt: ${prompt}`); // логируем начало генерации изображения
         const response = await openai.images.generate({
@@ -112,6 +156,8 @@ export async function generateImage(prompt) {
             size: "1024x1024", // Размер генерируемых изображений (256x256, 512x512, или 1024x1024)
         });
 
+        console.log(response)
+
         const imageUrl = response.data[0].url;
         logger.API(`Image generated successfully: ${imageUrl}`); // логируем успешную генерацию изображения
         return imageUrl;
@@ -119,7 +165,7 @@ export async function generateImage(prompt) {
         logger.error("Error generating image:", error.message); // логируем ошибку генерации изображения
         return false;
     }
-}
+}*/
 
 async function retrieveConversationHistory(chatId) {
     let massText = await getText(chatId);
@@ -154,21 +200,27 @@ async function retrieveConversationHistory(chatId) {
 }*/
 
 export async function chat(prompt, chatId) {
-    const conversationHistory = await retrieveConversationHistory(chatId);
-    const messageHistory = createMessageHistory(conversationHistory, prompt);
-
     try {
+        const conversationHistory = await retrieveConversationHistory(chatId);
+        const messageHistory = createMessageHistory(conversationHistory, prompt);
+
+        logger.API('Отправка запроса к OpenAI API');
+
         const response = await openai.chat.completions.create({
-            model: "gpt-4-turbo",
+            model: OpenAiConfig.chat_version,
             messages: messageHistory,
         });
-        console.log('response', response)
+        console.log(response)
+        console.log(response.choices[0].message)
+
         const answer = response.choices[0].message.content;
-        console.log("Длина текста:", answer.length);
-        console.log("answer:", answer);
+        logger.info('Ответ получен от OpenAI API');
+        logger.info(answer.length);
+        logger.API(answer);
+
         return answer;
     } catch (error) {
-        console.error("Error calling OpenAI API:", error);
+        logger.error('Ошибка при вызове OpenAI API: ', error);
         return "Ошибка API: не удалось получить ответ.";
     }
 }
@@ -237,7 +289,7 @@ export async function chat(prompt, chatId, imageUrl = null) {
 
 function createMessageHistory(conversationHistory, prompt, imageUrl = null) {
     const messageHistory = [
-        {role: "system", content: "Ты полезный помощник"},
+        {role: "system", content: "Короткий ёмкий ответ."},
     ];
 
     conversationHistory.forEach((entry) => {
@@ -247,13 +299,13 @@ function createMessageHistory(conversationHistory, prompt, imageUrl = null) {
         if (questionContent) {
             messageHistory.push({role: "user", content: questionContent});
         } else {
-            logger.warn('Пропущен некорректный вопрос в истории: %s', entry.question);
+            logger.warn(`Пропущен некорректный вопрос в истории: ${entry.question}` );
         }
 
         if (answerContent) {
             messageHistory.push({role: "assistant", content: answerContent});
         } else {
-            logger.warn('Пропущен некорректный ответ в истории: %s', entry.answer);
+            logger.warn(`Пропущен некорректный ответ в истории: ${entry.answer}`);
         }
     });
 
@@ -271,7 +323,7 @@ function createMessageHistory(conversationHistory, prompt, imageUrl = null) {
     } else if (prompt && typeof prompt.trim() === 'string') {
         userMessage.content = prompt.trim();
     } else {
-        logger.warn('Некорректный новый запрос: %s', prompt);
+        logger.warn('Некорректный новый запрос: ', prompt);
         userMessage = null;
     }
 
@@ -284,9 +336,10 @@ function createMessageHistory(conversationHistory, prompt, imageUrl = null) {
 
 export const askQuestion = async (question, chatId, imageUrl = null) => {
     try {
-        const answer = await chat(question, chatId, imageUrl);
-        await addToHistory(question, answer, chatId);
-        console.log("Ответ нейронки:", answer);
+        const user = await User.getUser(chatId)
+        const answer = await chat(question, user.chatId, imageUrl);
+        await addToHistory(question, answer, user.chatId);
+
 
         return answer;
     } catch (err) {

@@ -1,5 +1,5 @@
 import {logger} from "../../logger/logger.js";
-import {checkingYourSubscription, exist, sendInvoice} from "../botLogic.js";
+import {checkingYourSubscription, exist} from "../botLogic.js";
 import {
     addStatus,
     deleteGetText, getResponseCount,
@@ -8,51 +8,41 @@ import {
     getUserDetailsFromDB,
     resetResponseCount, setResponseCount,
 } from "../../database/database.js";
-import {askQuestion, generateAudio, generateImage} from "../../chat-gpt/chat-gpt.js";
+import {addToHistory, askQuestion, generateAudio, generateImage} from "../../chat-gpt/chat-gpt.js";
 
 import {bot} from "../index.js";
 import moment from "moment-timezone";
 import {displayCardInfo} from "../../BinChecker/BinChecker.js";
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import { promisify } from 'util';
+import {promisify} from 'util';
 import {createWriteStream, unlink} from "fs";
-import { pipeline } from 'stream';
+import {pipeline} from 'stream';
 import {token} from "../config/Config.js";
 import {
     convertAudioToMP3, deleteTemporaryFiles,
     transcribeAudio
 } from "../audio/AudioFunctions.js";
 import {processUserInput} from "../audio/ProcessUserInput.js";
+import {User} from "../../Users/User.js";
+import {Profile} from "../profile/Profile.js";
+
+
 const ffmpegPath = ffmpegInstaller.path;
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 
-
-
-
-const keyboardText = {
-    reply_markup: {
-        inline_keyboard: [
-            [
-                {
-                    text: 'Завершить диалог',
-                    callback_data: 'button_pressed',
-                },
-                {
-                    text: 'Завершить диалог',
-                    callback_data: 'button_pressed',
-                },
-            ],
-        ],
-    },
-}
 const keyboardMenu = {
     reply_markup: {
         keyboard: [
             [
                 {
                     text: 'Завершить диалог',
+
+                },
+                {
+                    text: '👤Профиль',
+                    callback_data: 'show_profile',
 
                 },
             ],
@@ -66,6 +56,7 @@ let status_1;
 
 const usersState = new Map(); // Для хранения состояния пользователей
 
+
 //обрезает и отправляет сообщение если текст больше 4к символов
 async function sendMessageInChunks(chatId, text) {
     // Ваш код для разбиения сообщения и отправки его по частям
@@ -74,7 +65,7 @@ async function sendMessageInChunks(chatId, text) {
 
     if (textLength <= maxMessageLength) {
         await bot.sendMessage(chatId, text, {
-                parse_mode: 'Markdown'
+            parse_mode: 'Markdown'
         });
     } else {
         let startIndex = 0;
@@ -98,9 +89,6 @@ export async function handleUserMessage(msg) {
         photo, sticker, document,
     } = msg;
 
-    if (photo) {
-        console.log("получено фото");
-    }
 
     const st = await getStatusOne(chatId);
     status_1 = st[0].column_status_1;
@@ -109,22 +97,22 @@ export async function handleUserMessage(msg) {
 }
 
 export async function handleText(msg, bot) {
-    // Ваша логика обработки текстовых сообщений
+
     const {
         message_id,
         chat: {id: chatId, first_name, username, type},
         text: messageText,
     } = msg;
-    // logger.info(JSON.stringify(msg))
-    logger.info(`[Пользователь: ${first_name} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
-
-    await exist(chatId, username, first_name, messageText);
-    await checkingYourSubscription(chatId);
-    // Здесь вызываем нашу функцию проверки пользователя и подписки
-    const canProceed = await handleUserRequest(chatId, messageText);
-    if (!canProceed) return; // Если пользователь исчерпал лимит, мы завершаем обработку
-    // Проверяем, является ли сообщение командой /image
+    // Получили пользователя
+    let user;
+    user = await User.getUser(chatId);
+    if (!user) {
+        await exist(chatId, username, first_name, messageText);
+        user = await User.getUser(chatId);
+    }
+    console.log(user)
+    logger.info(`[Пользователь: ${user.firstName} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
 
     if (messageText === "/start") {
@@ -145,20 +133,27 @@ export async function handleText(msg, bot) {
             await bot.sendMessage(chatId, welcomeMessage, keyboardMenu);
             return;
         }
+    } else if (messageText === "👤Профиль") {
+        const chatId = msg.chat.id;
+        const user = await User.getUser(chatId);
+        await Profile(user);
+
     } else if (messageText === "Завершить диалог") {
         if (await handleUserMessage(msg)) {
             await bot.sendMessage(chatId, "История диалога успешно сброшена!");
             await deleteGetText(chatId);
         }
-    } else if (messageText.startsWith('/image')) {
-        const prompt = messageText.slice(7);
-        console.log('prompt', prompt)
+    } else if (messageText.startsWith('/image') || messageText.startsWith('нарисуй') || messageText.startsWith('Нарисуй')) {
+        const commandEnd = messageText.indexOf(' ') + 1;
+        const prompt = messageText.slice(commandEnd);
+        logger.info(`prompt: ${prompt}`)
 
         try {
             const sentMessage = await bot.sendMessage(chatId, "рисую... 5 - 15 секунд!");
             const messageId = sentMessage.message_id;
 
-            const imageUrl = await generateImage(prompt);
+            const imageUrl = await generateImage(prompt, chatId);
+            await addToHistory(prompt, imageUrl, chatId);
 
             if (imageUrl) {
                 await bot.sendPhoto(chatId, imageUrl, {
@@ -186,13 +181,13 @@ export async function handleText(msg, bot) {
             console.error('Error generating audio:', error.message);
             await bot.sendMessage(chatId, 'Произошла ошибка при генерации аудио. Пожалуйста, попробуйте еще раз.');
         }
-    } else if (messageText === "Начать диалог") {
+    } /*else if (messageText === "Начать диалог") {
         if (await handleUserMessage(msg)) {
             await bot.sendMessage(chatId, "Диалог успешно начат!\nТеперь можете спросить меня о чем угодно...");
             await addStatus(chatId, "start_dialog");
         }
         //проверка карт /card 5536 9139 0670 5666
-    } else if (messageText.startsWith("/card")) {
+    }*/ else if (messageText.startsWith("/card")) {
 
         const cardPattern = /\/card\s*((\d{4}[\s\-]?){1,3}\d{2,4}|(\d{4}[\s\-]?){3}\d{4})/;
 
@@ -211,7 +206,8 @@ export async function handleText(msg, bot) {
         }
 
     } else {
-        // Обработка обычных текстовых сообщений
+
+
         const st = await getStatusOne(chatId);
         status_1 = st[0].column_status_1;
         let statusUser;
@@ -221,13 +217,43 @@ export async function handleText(msg, bot) {
         console.log("Проверяю статус: " + statusUser);
         statusUserFinal = statusUser;
 
-        logger.info(status_1)
-        logger.info(statusUserFinal)
+        logger.info(`status_1 ${status_1}`)
+        logger.info(`statusUserFinal ${statusUserFinal}`)
+
+        if (statusUser === "payment_amount") {
+            const amount = parseFloat(messageText);
+
+            if (isNaN(amount)) {
+                await bot.sendMessage(chatId, "Пожалуйста, укажите сумму пополнения в виде числа.");
+            } else if (amount < 200 || amount > 300000) {
+                await bot.sendMessage(chatId, "Пожалуйста, укажите сумму в диапазоне от 200 до 300000.");
+            } else {
+                const options = {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{text: '💳 Оплата картой', callback_data: 'buy_subscription2'}],
+                            [{text: 'Оплата crypto', callback_data: 'buy_subscription_crypto'}]
+                        ]
+                    }
+                };
+
+                await bot.sendMessage(chatId, `Отлично, пополним ваш баланс на ${amount} руб.`, options);
+                const user = await User.getUser(chatId);
+                await user.setPaymentAmount(amount);
+                await user.setUserStatus('start_dialog');
+            }
+        }
 
         if (status_1 === "yes_subscription") {
             try {
                 if (statusUserFinal === "start_dialog") {
                     try {
+                        await checkingYourSubscription(user.chatId);
+                        // Здесь вызываем нашу функцию проверки пользователя и подписки
+                        const canProceed = await handleUserRequest(user.chatId);
+                        if (!canProceed) return; // Если пользователь исчерпал лимит, мы завершаем обработку
+                        // Обработка обычных текстовых сообщений
                         // Проверяем состояние пользователя
                         if (usersState.get(chatId)) {
                             console.log("Пользователь ожидает ответа, не отправляем новое сообщение.");
@@ -242,7 +268,6 @@ export async function handleText(msg, bot) {
                         const messageId = sentMessage.message_id;
                         let text = await askQuestion(msg.text, chatId);
 
-                        console.log(message_id);
                         await bot.deleteMessage(chatId, messageId);
                         try {
                             await sendMessageInChunks(chatId, "🟢 " + text);
@@ -267,12 +292,11 @@ export async function handleText(msg, bot) {
     }
 }
 
-//проверяет подписку
-async function handleUserRequest(chatId, message) {
-
+//проверяет подписку и дает 5 бесплатных использований эту функцию использую там где нужно проверять
+async function handleUserRequest(chatId) {
 
     const userDetails = await getUserDetailsFromDB(chatId);
-
+    logger.info(`userDetails ${userDetails}`);
 
     if (!userDetails) {
         logger.error(`No user details found for chatId: ${chatId}`);
@@ -284,21 +308,18 @@ async function handleUserRequest(chatId, message) {
     const currentDate = moment().format('YYYY-MM-DD');
 
     if (dbDate !== currentDate) {
-        console.log("Current date:", currentDate);
-        console.log("date BD:", dbDate);
-        console.log("Last response date from DB:", userDetails.last_response_date);
+        logger.info("Текущая дата:", currentDate);
+        logger.info("Дата в БД:", dbDate);
+        logger.info("Последняя дата в БД:", userDetails.last_response_date);
         await resetResponseCount(chatId);
-
     }
 
     if (userDetails.subscription_status === 'active') {
         return true;
     } else if (userDetails.response_count < 5) {
-        console.log("Trying to increment response count for chatId:", chatId);
+        logger.info("Увеличиваем количество ответов для ChatId:", chatId);
         let count = await getResponseCount(chatId);
         let countPlus = count + 1;
-        console.log(count);
-        console.log(countPlus);
         await setResponseCount(chatId, countPlus)
         return true;
     } else {
@@ -310,7 +331,7 @@ async function handleUserRequest(chatId, message) {
                 ]
             }
         };
-        await bot.sendMessage(chatId, "🔥 <b>Привет, дорогой " + userDetails.userName + "!</b> \n" +
+        await bot.sendMessage(chatId, "🔥 <b>Привет " + userDetails.userName + "!</b> \n" +
             "\n" +
             "Кажется, вы исчерпали свои <b>5 бесплатных запросов</b> на сегодня! Не переживайте, у нас есть отличное предложение для вас.\n" +
             "\n" +
@@ -330,60 +351,9 @@ async function handleUserRequest(chatId, message) {
     }
 }
 
-// handlers/callbackQueryHandler.js
-export async function handleCallbackQuery(callbackQuery, bot) {
-    const callbackQueryId = callbackQuery.id;
-
-    // Ваша логика обработки callback запросов
-    const action = callbackQuery.data;
-    const msg = callbackQuery.message;
-    const chatId = msg.chat.id;
-    const photo = msg.text.photo;
-
-    if (photo) {
-        console.log('получено фото')
-    }
-
-    if (action === 'checking_your_subscription') {
-        await checkingYourSubscription(chatId)
-        const st = await getStatusOne(chatId);
-        status_1 = st[0].column_status_1;
-        if (status_1 === 'yes_subscription') {
-            await bot.sendMessage(chatId, '😊 Спасибо, за подписку! Вы можете использовать функционал бота. Напишите что-нибудь, например: Первый человек на луне?');
-        } else
-            await bot.sendMessage(chatId, 'Вы не подписались 😔');
-        await bot.answerCallbackQuery(callbackQuery.id, {
-            text: ''
-        });
-        return;
-    }
-
-
-    if (action === 'buy_subscription') {
-        const options = {
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    // [{text: 'Оплата переводом', callback_data: 'buy_subscription1'}],
-                    [{text: '💳 Оплата картой', callback_data: 'buy_subscription2'}],
-                    //[{text: 'Оплата BTC', callback_data: 'buy_subscription3'}]
-                ]
-            }
-        };
-        await bot.sendMessage(chatId, "Доступные методы оплаты:", options);
-        await bot.answerCallbackQuery(callbackQueryId);
-
-    }
-
-    if (action === 'buy_subscription2') {
-        await sendInvoice(chatId);
-        await bot.answerCallbackQuery(callbackQueryId);
-    }
-}
-
 
 async function getTranscription(msg, bot) {
-    const { chat: { id: chatId }, voice: { file_id: fileId } } = msg;
+    const {chat: {id: chatId}, voice: {file_id: fileId}} = msg;
     let tempFilePath, mp3FilePath;
 
     try {
@@ -417,7 +387,7 @@ async function getTranscription(msg, bot) {
 }
 
 export async function handleVoice(msg, bot) {
-    const { chat: { id: chatId } } = msg;
+    const {chat: {id: chatId}} = msg;
 
     try {
         const transcription = await getTranscription(msg, bot);

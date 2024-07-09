@@ -9,7 +9,12 @@ import {
 } from "../database/database.js";
 import {runUserExist} from "../database/database.js";
 import {logger} from "../logger/logger.js";
+import {config} from "dotenv";
+import {updatePaidInvoice} from "../database/cryptoPayBD.js";
+import {User} from "../Users/User.js";
+import {getRates} from "../cryptoPay/cryptoPay.js";
 
+config();
 
 export const ADMIN = 194857311
 const ADMIN2 = 921469238
@@ -31,6 +36,8 @@ const keyboardText = {
 //ресурс от куда пришли
 let resourceFromCome = 'none';
 let idUser;
+
+
 
 //Проверка есть ли пользователь в БД если нет, добавить пользователя в БД
 export const exist = async (chatId, userName, firstName, inputText) => {
@@ -68,7 +75,6 @@ export const exist = async (chatId, userName, firstName, inputText) => {
             + 'Source: ' + resourceFromCome;
 
         await bot.sendMessage(ADMIN, messageText);
-        // await bot.sendMessage(ADMIN2, messageText);
     }
 }
 
@@ -82,8 +88,9 @@ export const checkingYourSubscription = async (chatId) => {
             || chatMember.status === 'creator')) {
             // Пользователь подписан на канал, разрешаем использовать бота
             //  bot.sendMessage(chatId, 'Вы подписаны на канал. Можете пользоваться ботом.');
-            await addStatusOne(chatId, 'yes_subscription')
+            await addStatusOne(chatId, 'yes_subscription');
             await addStatus(chatId, "start_dialog");
+            logger.info(`Пользователь подписан на канал!`)
         } else {
             // Пользователь не подписан на канал
             await bot.sendMessage(chatId, 'Пожалуйста, подпишитесь на канал @chat_gpt_neural_network, ' +
@@ -92,7 +99,7 @@ export const checkingYourSubscription = async (chatId) => {
 
         }
     } catch (error) {
-        console.error('Ошибка при проверке подписки на канал:', error.message);
+        logger.error(error.message);
         await bot.sendMessage(chatId, 'Произошла ошибка при проверке подписки на канал. Пожалуйста, ' +
             'попробуйте позже.');
     }
@@ -109,71 +116,6 @@ export const whereDidYouComeFrom = (inputText) => {
     resourceFromCome = desiredPart;
 }
 
-// Создает счет на оплату
-export async function sendInvoice(chatId) {
-    const title = "Премиум";
-    const description = "Подписка на месяц с неограниченным доступом к функционалу бота.";
-    const payload = "YourPayload";  // Полезная нагрузка для внутренних нужд
-    const providerToken = "390540012:LIVE:41598";  // Токен поставщика платежей
-    //const startParameter = "test";
-    const currency = "RUB";  // Валюта
-    const prices = [
-        {label: "Премиум подписка", amount: 10000}
-    ];
-
-
-    try {
-        await bot.sendInvoice(chatId, title, description, payload, providerToken, currency, prices);
-        logger.info("Invoice sent");
-    } catch (error) {
-        logger.error("Error sending invoice:", error);
-    }
-}
-
-//Проверяем оплату и отправляем уведомления
-export async function handlePreCheckoutQuery(bot, preCheckoutQuery) {
-
-    try {
-        // разрешение оплаты
-        await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
-        logger.info("Оплата разрешена, ожидаем оплаты")
-
-
-    } catch (error) {
-        logger.error('Ошибка при обработке оплаты:', error);
-        await bot.sendMessage(ADMIN, `Ошибка при разрешении оплаты от ${preCheckoutQuery.from.first_name} ${error}`);
-        // Отправить ошибку при оплате (если что-то пошло не так)
-        await bot.answerPreCheckoutQuery(preCheckoutQuery.id, false, {
-            error_message: "Что-то пошло не так, попробуйте снова позже."
-        });
-    }
-}
-
-export async function handleSuccessfulPayment(bot, message) {
-
-    try {
-        // Запись информации о платеже в базу данных (пример)
-        const payment = message.successful_payment.telegram_payment_charge_id;
-        await savePaymentInfo(message.chat.id, payment);
-        console.log(message)
-
-        // Подтверждение оплаты
-
-        const chatId = message.chat.id;
-        logger.info(`Успешная оплата от ${message.from.first_name}`);
-        await bot.sendMessage(ADMIN, `Оплата подписки от ${message.from.first_name}`);
-        await bot.sendMessage(chatId, `👌 Спасибо за оплату ${message.from.first_name}, доступно неограниченное количество запросов!`);
-        await setSubscriptionActive(chatId)
-        await resetResponseCount(chatId)
-        await setSubscriptionEndDate(chatId)
-
-    } catch (error) {
-        logger.error("Ошибка при обработке успешного платежа:", error);
-        await bot.sendMessage(ADMIN, `Ошибка при обработке оплаты от ${message.from.first_name} ${error}`);
-        // Отправить ошибку при оплате (если что-то пошло не так)
-        await bot.sendMessage(message.chat.id, "Произошла ошибка при обработке вашего платежа. Пожалуйста, свяжитесь с поддержкой.");
-    }
-}
 
 
 
