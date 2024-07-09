@@ -55,7 +55,7 @@ try {
             // Обработка PDF-файлов
             await handlePDF(msg, bot);
         }
-        // ... и так далее для других типов сообщений
+        // .. и так далее для других типов сообщений
     });
 
     bot.on('callback_query', (callbackQuery) => handleCallbackQuery(callbackQuery, bot));
