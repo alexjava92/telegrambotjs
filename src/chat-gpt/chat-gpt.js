@@ -12,7 +12,7 @@ import {bot} from "../telegram-bot/index.js";
 
 config();
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: "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",
 });
 
 export async function callOpenAIModel(model, usage, prompt) {
