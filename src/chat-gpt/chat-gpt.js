@@ -11,8 +11,9 @@ import {useOpenAIModel} from "./prices/price.js";
 import {bot} from "../telegram-bot/index.js";
 
 config();
+
 const openai = new OpenAI({
-    apiKey: "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",
+    apiKey: "oifYKcbWCcwfotqZlLEqT3BlbkFJ4OksIYEKej0AIZ1J4pyo",
 });
 
 export async function callOpenAIModel(model, usage, prompt) {
