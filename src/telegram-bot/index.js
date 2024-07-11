@@ -1,8 +1,8 @@
 import TelegramBot from 'node-telegram-bot-api';
 import {logger} from "../logger/logger.js";
-import {HttpsProxyAgent} from 'https-proxy-agent';
+
 import {handleText, handleVoice} from "./handlers/TextHandler.js";
-import {proxy, token} from "./config/Config.js";
+import {token} from "./config/Config.js";
 import {checkAndSetSubscriptionStatus, savePaymentInfo} from "../database/database.js";
 import {handlePhoto} from "./photo/handlePhoto.js";
 import {handlePreCheckoutQuery, handleSuccessfulPayment} from "./payment/paymentYandex.js";
@@ -18,8 +18,8 @@ import {server} from "../cryptoPay/cryptoPayServer.js";
 let bot;
 
 try {
-    const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
-    const agent = new HttpsProxyAgent(proxyUrl);
+   /* const proxyUrl = `http://${proxy.auth}@${proxy.host}:${proxy.port}`;
+    const agent = new HttpsProxyAgent(proxyUrl);*/
 
     bot = new TelegramBot(token, {polling: true, /*request: {agent}*/});
 } catch (err) {
