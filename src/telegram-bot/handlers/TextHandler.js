@@ -112,6 +112,11 @@ export async function handleText(msg, bot) {
         user = await User.getUser(chatId);
     }
     console.log(user)
+    if (!user || !user.firstName) {
+        logger.error(`User not found or missing firstName for chatId: ${chatId}`);
+        await bot.sendMessage(chatId, "Ошибка: Не удалось найти информацию о пользователе.");
+        return;
+    }
     logger.info(`[Пользователь: ${user.firstName} Отправил текст: ${messageText} message_id: ${message_id}]`);
 
 
